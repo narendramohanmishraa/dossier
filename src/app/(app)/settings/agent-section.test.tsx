@@ -13,7 +13,6 @@ vi.mock("@/components/toast", () => ({ toast: vi.fn(), toastResult: (result: { o
 const initial: AgentSettings = {
   enabled: false,
   query: { keywords: "Data scientist", place: "Berlin", country: "de", radiusKm: 25, remoteOnly: false, postedWithin: "any" },
-  hour: 7,
   minScore: 70,
   maxScores: 15,
   maxDrafts: 3,
@@ -24,7 +23,7 @@ const countries = [
   { code: "nl", name: "Netherlands" },
 ];
 const open = (props: Partial<Parameters<typeof AgentSection>[0]> = {}) =>
-  render(<AgentSection initial={initial} source="JSEARCH" aiReady countries={countries} timeZone="Europe/Berlin" {...props} />);
+  render(<AgentSection initial={initial} source="JSEARCH" aiReady countries={countries} {...props} />);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -37,7 +36,7 @@ describe("Settings → Job agent (E16-7)", () => {
     expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it's on.");
     await user.click(toggle);
     expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query });
-    expect(toggle).toHaveAccessibleDescription(/^On\. It runs once a day after 07:00 your time \(Europe\/Berlin\)/);
+    expect(toggle).toHaveAccessibleDescription("On. It searches once an hour. You can also run it manually when the hourly limit allows.");
   });
 
   it("needs keywords and a country to turn on", async () => {
@@ -55,8 +54,6 @@ describe("Settings → Job agent (E16-7)", () => {
     open();
     await user.type(screen.getByLabelText("What"), " NLP");
     await waitFor(() => expect(saveAgentSettings).toHaveBeenLastCalledWith({ query: { ...initial.query, keywords: "Data scientist NLP" } }), { timeout: 2000 });
-    await user.selectOptions(screen.getByLabelText("Runs after"), "09:00");
-    expect(saveAgentSettings).toHaveBeenLastCalledWith({ hour: 9 });
     await user.selectOptions(screen.getByLabelText("Minimum score"), "80 of 100");
     expect(saveAgentSettings).toHaveBeenLastCalledWith({ minScore: 80 });
     await user.selectOptions(screen.getByLabelText("Postings scored per run"), "20");
@@ -78,7 +75,7 @@ describe("Settings → Job agent (E16-7)", () => {
 
   it("explains the limits in plain words", () => {
     open();
-    expect(screen.getByText(/^One search a day, and at most three in any 24 hours\. Each run scores up to 15 postings\./)).toBeInTheDocument();
+    expect(screen.getByText(/^One search an hour, and at most 24 in any rolling 24 hours\. Each run scores up to 15 postings\./)).toBeInTheDocument();
   });
 
   it("points to the source or AI provider while one isn't set up", () => {
