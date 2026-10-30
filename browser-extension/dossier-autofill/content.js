@@ -134,7 +134,8 @@
         displayValue = String(option.textContent || option.label || value).trim();
       }
 
-      const id = element.dataset.dossierAutofillId || `field-${++index}`;
+      index += 1;
+      const id = element.dataset.dossierAutofillId || `field-${crypto.randomUUID()}`;
       element.dataset.dossierAutofillId = id;
       fields.push({
         id,
