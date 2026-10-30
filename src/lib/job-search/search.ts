@@ -69,7 +69,7 @@ export const EMPTY_QUERY: SearchQuery = {
  */
 export const DEFAULT_AGENT_QUERY: SearchQuery = {
   keywords: '"Head of IT" OR "AVP IT" OR CTO OR "IT Delivery Manager" OR "Digital Transformation Head" OR "Product Manager FinTech"',
-  place: "India",
+  place: "",
   country: "in",
   radiusKm: DEFAULT_RADIUS_KM,
   remoteOnly: false,
