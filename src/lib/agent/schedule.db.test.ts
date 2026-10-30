@@ -58,7 +58,7 @@ describe("the monthly source-request budget and spacing", () => {
 
   it("allows no more than one source request every four hours, whether scheduled or manual", () => {
     expect(runLimitProblem([], now, { manual: true })).toBeNull();
-    expect(runLimitProblem([run("2026-10-20T08:25:00Z")], now, { manual: true })).toBe("The agent runs once every four hours. Try again in 1 hour.");
+    expect(runLimitProblem([run("2026-10-20T08:25:00Z")], now, { manual: true })).toBe("The agent runs once every four hours. Try again in 4 hours.");
     expect(runLimitProblem([run("2026-10-20T08:25:00Z")], now, { manual: false })).toBe("The agent runs once every four hours. Try again in 1 hour.");
     expect(runLimitProblem([run("2026-10-20T07:59:00Z", true)], now, { manual: false })).toBeNull();
   });
