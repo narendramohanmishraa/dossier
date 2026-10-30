@@ -13,7 +13,7 @@ import { lastKnownTimeZone } from "@/lib/time-zone";
 import { stringsOf } from "./candidates";
 import { AGENT_JOB_KEY } from "./jobs";
 import { agentSetupProblem } from "./run";
-import { AGENT_MAX_RUNS_PER_DAY, runsInPastDay } from "./runs";
+import { AGENT_MAX_RUNS_PER_MONTH, runsInPastMonth } from "./runs";
 import { nextAgentRun } from "./schedule";
 
 // What the Agent screen shows (E16-6).
@@ -51,7 +51,7 @@ export type AgentView = {
   setupProblem: string | null;
   /** Which settings section fixes it. */
   setupSection: "agent" | "ai" | "jobs" | null;
-  /** The rolling 24-hour scan limit is used up. */
+  /** The rolling 30-day search budget is used up. */
   limitReached: boolean;
   lastRun: { at: string; message: string | null } | null;
   /** In the user's zone; null while the agent is off. */
@@ -141,7 +141,7 @@ export async function loadAgentView(now = new Date()): Promise<AgentView> {
     search,
     setupProblem,
     setupSection: setupProblem ? sectionOf(setupProblem) : null,
-    limitReached: runsInPastDay(settings.agentRuns, now).length >= AGENT_MAX_RUNS_PER_DAY,
+    limitReached: runsInPastMonth(settings.agentRuns, now).length >= AGENT_MAX_RUNS_PER_MONTH,
     lastRun: last ? { at: formatDateTime(new Date(last.at), timeZone, now), message: last.message } : null,
     nextRun: settings.agentEnabled ? formatDateTime(nextAgentRun(now, settings.agentHour, timeZone, settings.agentRuns), timeZone, now) : null,
     runJobId: runJobs[0]?.id ?? null,
