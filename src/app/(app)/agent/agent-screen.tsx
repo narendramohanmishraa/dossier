@@ -93,7 +93,7 @@ export function AgentScreen({ view }: { view: AgentView }) {
     <>
       <PageHeader
         title="Job agent"
-        description="Every hour it searches for new postings, scores them against your profile, and keeps the best here for you. Drafts wait for your review, and nothing is ever sent."
+        description="Every four hours it searches India-wide, filters for target roles and source-backed listings, and queues only 95+ profile matches. Tailored drafts wait for your review; nothing is submitted."
         actions={
           <Button aria-disabled={running || pending || undefined} onClick={() => !running && !pending && runNow()}>
             {running ? "Running…" : "Run now"}
@@ -238,7 +238,7 @@ function Notices({ view }: { view: AgentView }) {
       </>,
     );
   }
-  if (view.limitReached) return note("The agent has reached its limit of 24 runs in the past 24 hours. It will resume when the oldest run leaves the rolling 24-hour window.");
+  if (view.limitReached) return note("The agent has used its 180-search rolling 30-day budget. It will resume when the oldest search leaves the window.");
   return null;
 }
 
