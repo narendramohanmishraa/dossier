@@ -66,10 +66,11 @@ describe("stored settings", () => {
       agentEnabled: false,
       agentQuery: DEFAULT_AGENT_QUERY,
       agentHour: 7,
-      agentMinScore: 75,
+      agentMinScore: 95,
       agentMaxScores: 15,
       agentMaxDrafts: 3,
-      agentAutoDraft: false,
+      agentAutoDraft: true,
+      agentAutoDraftConfigured: false,
       agentRuns: [],
       startupsViewedAt: null,
       startupsLastRefresh: null,
@@ -146,7 +147,7 @@ describe("stored settings", () => {
 });
 
 describe("the job agent's India defaults", () => {
-  it("searches across India for the requested leadership and FinTech roles with a 75-point threshold", () => {
+  it("searches across India for the requested leadership and FinTech roles with a 95-point threshold", () => {
     expect(DEFAULT_AGENT_QUERY).toMatchObject({
       place: "",
       country: "in",
@@ -159,7 +160,7 @@ describe("the job agent's India defaults", () => {
     expect(DEFAULT_AGENT_QUERY.keywords).toContain('"IT Delivery Manager"');
     expect(DEFAULT_AGENT_QUERY.keywords).toContain('"Digital Transformation Head"');
     expect(DEFAULT_AGENT_QUERY.keywords).toContain('"Product Manager FinTech"');
-    expect(settingsFromRows([]).agentMinScore).toBe(75);
+    expect(settingsFromRows([]).agentMinScore).toBe(95);
   });
 });
 
@@ -179,7 +180,7 @@ describe("the job agent's settings (E16)", () => {
       { key: "agentMaxScores", value: "0" },
       { key: "agentMaxDrafts", value: "11" },
     ]);
-    expect(odd).toMatchObject({ agentQuery: DEFAULT_AGENT_QUERY, agentRuns: [], agentHour: 7, agentMinScore: 75, agentMaxScores: 15, agentMaxDrafts: 3 });
+    expect(odd).toMatchObject({ agentQuery: DEFAULT_AGENT_QUERY, agentRuns: [], agentHour: 7, agentMinScore: 95, agentMaxScores: 15, agentMaxDrafts: 3 });
   });
 });
 
