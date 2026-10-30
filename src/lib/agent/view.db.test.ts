@@ -54,7 +54,7 @@ describe("the Agent screen's data (E16-6)", () => {
       setupProblem: null,
       limitReached: false,
       lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },
-      nextRun: "Tue 20 Oct, 10:01",
+      nextRun: "Tue 20 Oct, 12:00",
     });
     // The badge: scored at or above the minimum, and drafts.
     expect(await countAgentQueue()).toBe(3);
