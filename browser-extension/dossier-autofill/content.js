@@ -1,3 +1,4 @@
+/* global chrome */
 (() => {
   if (window.__dossierAutofillInstalled) return;
   window.__dossierAutofillInstalled = true;
