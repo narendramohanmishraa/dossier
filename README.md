@@ -35,7 +35,7 @@ It's for one person on a small server: one password, your data in your own Postg
 - **Base resume:** twelve themes and a theme builder, previewed live and printed to PDF on the server. Duplicate themes, or share them as files.
 - **Find jobs:** search postings near your city, or anywhere you choose, through JSearch (LinkedIn, Indeed and more), Adzuna or FreeHire (company career pages). Save the good ones, dismiss the rest, score any of them against your profile, and start an application from a posting with one click.
 - **Startups:** startups that are hiring, from YC startups' job posts and Hacker News' monthly “Who is hiring?” thread, kept to the ones that hire where you live or remotely from your country and ranked against your profile, with the address each one publishes for applications. Dossier reads their sites politely and follows their robots.txt. Start an application to one with a click; you decide whom to write to.
-- **Job agent (optional):** with its India default, runs four targeted searches each hour (remote across India, Delhi, Gurugram and Noida; at most 24 scans in a rolling 24-hour window), skips what you've seen, scores new postings against your profile and keeps the best on the Agent screen with its reasons. Custom place or remote-only filters can narrow the search. It can prepare tailored drafts too, which wait for your review. It never sends or applies. Check your job source's quota and billing before enabling hourly scans; the default four-query plan can use up to 2,880 provider requests in a 30-day month. Dossier's source catalogue lists JSearch's free tier at 200 searches a month, which is not enough for hourly scans.
+- **Job agent (optional):** the India default makes one source search every four hours, with a hard cap of 180 requests in any rolling 30 days (a 20-request reserve against a 200/month plan). It keeps source-backed postings with an employer, a substantive description, an HTTPS application link and one of the requested IT leadership or FinTech product titles. AI scores each against your profile; only 95/100+ matches enter the review queue. Tailored resume and cover-letter drafts are prepared automatically and wait for your review. It never sends or applies. A source listing cannot guarantee the employer has not closed a vacancy, so check the original posting before applying.
 - **New application:** paste a posting; Dossier pulls out the details and requirements, matches them against your profile, and writes a tailored resume and cover letter in the tone you pick.
 - **Never invents experience:** drafts only use facts from your profile. What the posting asks for and your profile doesn't have is shown as a gap, not made up.
 - **Refine:** ask for changes in a chat, edit or regenerate any part (every part of the cover letter too: sender, date, recipient, greeting and sign-off, written in the letter's language), undo AI changes or go back to any earlier version, keep private notes.
@@ -78,7 +78,7 @@ All you need is [Docker Desktop](https://docs.docker.com/desktop/) on macOS or W
 
 ```bash
 mkdir ~/dossier && cd ~/dossier
-curl -fsSL -o compose.yml https://raw.githubusercontent.com/AienTech/dossier/main/compose.production.yml
+curl -fsSL -o compose.yml https://raw.githubusercontent.com/narendramohanmishraa/dossier/main/compose.production.yml
 echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
 echo "DOSSIER_SECRET=$(openssl rand -base64 32)" >> .env
 ```
@@ -88,7 +88,7 @@ On an Apple Silicon Mac, also run `printf 'services:\n  app:\n    platform: linu
 **2. Choose your password.** This asks for it twice and prints a hash of it, one line that starts with `argon2id:`:
 
 ```bash
-docker run --rm -it --platform linux/amd64 ghcr.io/aientech/dossier hash-password
+docker run --rm -it --platform linux/amd64 ghcr.io/narendramohanmishraa/dossier:main hash-password
 ```
 
 Add that line to `.env` as `DOSSIER_PASSWORD=argon2id:…`, with any text editor. Dossier only keeps the hash, never the password.
@@ -106,6 +106,26 @@ The first start downloads the image (about 1.7 GB) and sets up the database. Ope
 ## Self-hosting
 
 To put Dossier on a server, on your own domain with HTTPS, follow the [installation guide](https://github.com/AienTech/dossier/wiki#self-host-on-a-server): a plain Ubuntu server with Docker Compose and Caddy (or Node.js, without Docker), CapRover, Coolify or Dokploy. Give the server at least 2 vCPUs and 2 GB of memory (see [Performance and sizing](#performance-and-sizing)).
+
+### This fork's production image
+
+This repository's GitHub Actions workflow builds the Dockerfile's `production` target and publishes `ghcr.io/narendramohanmishraa/dossier:main` to GitHub Container Registry after the checks pass on a push to `main`. Merging the job-agent pull request to `main` is what triggers that image build; a draft PR does not publish the production image.
+
+For a server that stays online while your laptop is off, use a VPS or other always-on Docker host. On that host:
+
+1. Copy `production.env.example` to `production.env` and replace every placeholder. Use a random hexadecimal `POSTGRES_PASSWORD` (for example, `openssl rand -hex 24`), generate `DOSSIER_SECRET` with `openssl rand -base64 48`, and create the Dossier login hash with the published image's `hash-password` command.
+2. Pull and start the production services:
+
+   ```bash
+   docker compose -f compose.production.yml --env-file production.env pull
+   docker compose -f compose.production.yml --env-file production.env up -d
+   ```
+
+3. Put a reverse proxy with HTTPS in front of the localhost-bound app port. Keep the `dossier-db-data` and `dossier-data` volumes; they contain the database and Dossier files.
+
+The workflow publishes the `main` image tag and a commit-SHA tag when it runs successfully. If the GHCR package is private, authenticate on the server with a GitHub token that has package read access (`docker login ghcr.io`). You can make the package public in the GitHub Packages settings to allow unauthenticated pulls.
+
+The container is built by GitHub; it still needs an always-on host to run it. A container image in GHCR is not itself a running server.
 
 ## Documentation
 
