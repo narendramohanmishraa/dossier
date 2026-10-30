@@ -30,17 +30,17 @@ test("finds ultra-close India roles, drafts automatically and never submits appl
   await expect(page.getByText("2 new postings are waiting for a look.").first()).toBeVisible({ timeout: 30_000 });
   expect(await fakeJobSearches()).toBe(searches + 1);
 
+  // The best 95+ match is drafted in its own background job and waits for review.
+  const drafts = page.getByRole("region", { name: "Drafts to review" });
+  await expect(drafts.getByRole("heading", { level: 3, name: "Head of IT" })).toBeVisible({ timeout: 60_000 });
+
   const scored = page.getByRole("region", { name: "Scored postings" });
   await expect(scored.getByRole("heading", { level: 3 })).toHaveText(["IT Delivery Manager"]);
   await expect(card(page, "IT Delivery Manager").getByRole("img", { name: "Score 97 of 100" })).toBeVisible();
 
   // CTO is source-backed but scores below 95, so it is not surfaced at all.
-  await expect(page.getByText("CTO")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 3, name: "CTO" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /below your minimum score/ })).toHaveCount(0);
-
-  // The best 95+ match is drafted automatically and waits for a human review.
-  const drafts = page.getByRole("region", { name: "Drafts to review" });
-  await expect(drafts.getByRole("heading", { level: 3, name: "Head of IT" })).toBeVisible({ timeout: 60_000 });
   const [draft] = await sql<{ id: string }>(`SELECT id FROM "Application" WHERE origin = 'AGENT'`);
   await expect(drafts.getByRole("link", { name: "Review draft" })).toHaveAttribute("href", `/applications/${draft.id}`);
 
