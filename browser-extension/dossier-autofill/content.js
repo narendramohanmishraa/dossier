@@ -67,8 +67,8 @@
     const name = splitName(basics.name);
     const latest = (profile.experience || [])[0] || {};
     const education = (profile.education || [])[0] || {};
-    const textValue = element.tagName === "TEXTAREA" || element.tagName === "INPUT";
-    if (!textValue) return null;
+    const supportedControl = element.tagName === "TEXTAREA" || element.tagName === "INPUT" || element.tagName === "SELECT";
+    if (!supportedControl || element.multiple) return null;
     if (/first name|given name|fname/.test(hint)) return name.first;
     if (/last name|family name|surname|lname/.test(hint)) return name.last;
     if (/full name|your name|candidate name|\bname\b/.test(hint)) return basics.name;
