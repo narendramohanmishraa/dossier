@@ -248,7 +248,7 @@ describe("runAgentScan (E16-3)", () => {
 
   it("says when nothing reached the minimum score", async () => {
     fake.postings = [page[2]];
-    expect((await runAgentScan({ manual: false }, context(), now)).message).toBe("Scored 1 new posting; none reached your minimum score of 70.");
+    expect((await runAgentScan({ manual: false }, context(), now)).message).toBe("Scored 1 new posting; none reached your minimum score of 75.");
     expect(demoProfile().basics.name).toBe("Jane Doe");
   });
 });
