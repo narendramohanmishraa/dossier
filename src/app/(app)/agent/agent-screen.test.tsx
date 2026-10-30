@@ -108,14 +108,10 @@ describe("AgentScreen (E16-6)", () => {
     expect(within(scored).getByRole("link", { name: "Jobs by Adzuna (opens in a new tab)" })).toHaveAttribute("href", "https://www.adzuna.nl");
   });
 
-  it("keeps postings below the minimum score behind Show", async () => {
-    const user = userEvent.setup();
+  it("never surfaces postings below the minimum score", async () => {
     open();
     expect(screen.queryByText("Posting b1")).not.toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: "1 below your minimum score of 95 · Show" });
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Posting b1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /below your minimum score/ })).not.toBeInTheDocument();
   });
 
   it("prepares a draft from a scored posting", async () => {
