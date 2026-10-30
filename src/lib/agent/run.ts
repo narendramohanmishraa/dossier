@@ -25,7 +25,7 @@ import { agentDedupeKey, candidateData } from "./candidates";
 import { agentDraftJob, draftJobKey } from "./draft";
 import { recordRunEnd, recordRunStart, runLimitProblem } from "./runs";
 
-// One run of the job agent (E16-3): one search, the postings seen before
+// One run of the job agent (E16-3): the configured searches, the postings seen before
 // dropped, and a score for the newest of the rest. It never sends anything.
 // Adapted from avinashbatchala's fork of Dossier.
 
@@ -47,6 +47,20 @@ const stopped = (message: string): AgentScanResult => ({ found: 0, fresh: 0, sco
 
 /** Whether a search is complete enough to run: keywords and a country. */
 export const agentQueryReady = (query: SearchQuery) => Boolean(query.keywords.trim() && query.country);
+
+/**
+ * India default: search remote roles and each requested city independently.
+ * Other saved searches keep their original single-query behavior.
+ */
+export function agentSearchQueries(query: SearchQuery): SearchQuery[] {
+  if (query.country !== "in" || query.place.trim() || query.remoteOnly) return [query];
+  return [
+    { ...query, place: "", remoteOnly: true },
+    { ...query, place: "Delhi", remoteOnly: false },
+    { ...query, place: "Gurugram", remoteOnly: false },
+    { ...query, place: "Noida", remoteOnly: false },
+  ];
+}
 
 /** Why the agent can't run at all, in words, or null when it's set up. */
 export async function agentSetupProblem(query: SearchQuery): Promise<string | null> {
@@ -90,7 +104,7 @@ export async function newPostings(postings: readonly FoundPosting[]): Promise<Fo
 const newestFirst = (a: FoundPosting, b: FoundPosting) => (b.postedAt ? Date.parse(b.postedAt) : 0) - (a.postedAt ? Date.parse(a.postedAt) : 0);
 
 /**
- * One run: the first page of results only (one source request), then a
+ * One run: the first page of each target query, then a
  * score for the newest new postings, up to agentMaxScores. Each is kept as a
  * candidate, so it doesn't come back; one below agentMinScore stays out of
  * the queue. With auto-draft on, the best of them get a draft each, up to
@@ -116,8 +130,13 @@ export async function runAgentScan({ manual }: { manual: boolean }, context: Job
   const source = config.source!;
   let postings: FoundPosting[];
   try {
-    // The first page only: the agent never asks for a second.
-    postings = (await searchPostings(source, credentialsFor(config, source), settings.agentQuery, null, requestContext(source))).postings;
+    // First page for each target: remote India, Delhi, Gurugram and Noida.
+    // Other configured searches remain a single source request.
+    const credentials = credentialsFor(config, source);
+    const request = requestContext(source);
+    const queries = agentSearchQueries(settings.agentQuery);
+    const pages = await Promise.all(queries.map((query) => searchPostings(source, credentials, query, null, request)));
+    postings = pages.flatMap((page) => page.postings);
   } catch (error) {
     if (error instanceof JobSearchError) return finish(stopped(error.message));
     throw error;
