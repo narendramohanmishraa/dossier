@@ -145,6 +145,24 @@ describe("stored settings", () => {
   });
 });
 
+describe("the job agent's India defaults", () => {
+  it("searches across India for the requested leadership and FinTech roles with a 75-point threshold", () => {
+    expect(DEFAULT_AGENT_QUERY).toMatchObject({
+      place: "",
+      country: "in",
+      remoteOnly: false,
+      postedWithin: "week",
+    });
+    expect(DEFAULT_AGENT_QUERY.keywords).toContain('"Head of IT"');
+    expect(DEFAULT_AGENT_QUERY.keywords).toContain('"AVP IT"');
+    expect(DEFAULT_AGENT_QUERY.keywords).toContain("CTO");
+    expect(DEFAULT_AGENT_QUERY.keywords).toContain('"IT Delivery Manager"');
+    expect(DEFAULT_AGENT_QUERY.keywords).toContain('"Digital Transformation Head"');
+    expect(DEFAULT_AGENT_QUERY.keywords).toContain('"Product Manager FinTech"');
+    expect(settingsFromRows([]).agentMinScore).toBe(75);
+  });
+});
+
 describe("the job agent's settings (E16)", () => {
   it("reads its search and runs as JSON, and values out of range as the defaults", () => {
     const query = { keywords: "Data scientist", place: "Berlin", country: "de", radiusKm: 50, remoteOnly: true, postedWithin: "week" } as const;
