@@ -9,9 +9,40 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  smoke:
+  check:
+    name: Lint, type-check and unit tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dossier
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dossier"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dossier
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
     steps:
-      - name: Confirm CI workflow starts
-        run: echo "CI workflow started on $GITHUB_REF at $GITHUB_SHA"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: corepack enable
+      - run: yarn install --immutable
+      - run: yarn prisma generate
+      - run: yarn lint
+      - run: yarn typecheck
+      - run: yarn test:coverage
