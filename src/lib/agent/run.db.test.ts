@@ -92,7 +92,6 @@ const posting = (id: string, title: string, posted: string, extra: Partial<Found
 const page = [
   posting("a", "Head of IT", "2026-10-19T00:00:00Z"),
   posting("b", "IT Delivery Manager", "2026-10-18T00:00:00Z"),
-  // No link: its dedupe key is company, title and place.
   posting("c", "CTO", "2026-10-17T00:00:00Z", { url: "" }),
 ];
 
@@ -104,7 +103,7 @@ const context = (abort?: AbortController): JobContext & { steps: string[] } => {
 beforeEach(async () => {
   await resetDatabase(prisma());
   Object.assign(fake, { postings: page, searches: 0, source: "JSEARCH", ai: true, failOn: null, onScore: () => {} });
-  await saveSettings({ agentEnabled: true, agentQuery: query });
+  await saveSettings({ agentEnabled: true, agentQuery: query, agentAutoDraft: false, agentAutoDraftConfigured: true });
 });
 afterAll(() => prisma().$disconnect());
 
@@ -169,7 +168,7 @@ describe("runAgentScan (E16-3)", () => {
     // The same jobs from Adzuna: one by its link, one by company, title and place.
     fake.postings = [
       posting("az-1", "Head of IT", "2026-10-19T00:00:00Z", { source: "ADZUNA", url: "https://jobs.example/a?utm_medium=y" }),
-      posting("az-2", "CTO", "2026-10-18T00:00:00Z", { source: "ADZUNA", url: "", company: "COMPANY c" }),
+      posting("az-2", "CTO", "2026-10-18T00:00:00Z", { source: "ADZUNA", url: "https://jobs.example/c?utm_campaign=z", company: "COMPANY c" }),
       posting("az-3", "IT Delivery Manager", "2026-10-20T00:00:00Z", { source: "ADZUNA" }),
     ];
     const third = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 8 * hour));
