@@ -7,6 +7,11 @@ import { createTestClient, resetDatabase } from "@/test/db";
 import { nextAgentRun, resetInterruptedDrafts, scheduledRunDue, startDueRun } from "./schedule";
 import { AGENT_MAX_RUNS_PER_DAY, runLimitProblem } from "./runs";
 
+vi.mock("./run", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./run")>()),
+  agentSetupProblem: async () => null,
+}));
+
 const db = vi.hoisted(() => ({ client: undefined as ReturnType<typeof createTestClient> | undefined }));
 vi.mock("@/lib/prisma", async () => {
   const { createTestClient } = await import("@/test/db");
