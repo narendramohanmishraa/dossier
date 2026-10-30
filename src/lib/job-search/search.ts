@@ -63,9 +63,8 @@ export const EMPTY_QUERY: SearchQuery = {
 };
 
 /**
- * Starting search for the hourly job agent. The query is intentionally
- * India-wide so one source request can cover remote and on-site roles in
- * Gurugram, Noida, Delhi and other Indian locations.
+ * Base search for the hourly India job agent. The agent expands this into
+ * four source queries: remote India, Delhi, Gurugram and Noida.
  */
 export const DEFAULT_AGENT_QUERY: SearchQuery = {
   keywords: '"Head of IT" OR "AVP IT" OR CTO OR "IT Delivery Manager" OR "Digital Transformation Head" OR "Product Manager FinTech"',
