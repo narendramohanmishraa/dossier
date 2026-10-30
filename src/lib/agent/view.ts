@@ -129,7 +129,7 @@ export async function loadAgentView(now = new Date()): Promise<AgentView> {
     applicationId: candidate.applicationId,
     draftJobId: draftJob.get(candidate.id) ?? null,
   });
-  const drafts = candidates.filter((candidate) => candidate.status === AgentCandidateStatus.DRAFTED && candidate.applicationId && candidate.score >= settings.agentMinScore).map(view);
+  const drafts = candidates.filter((candidate) => candidate.status === AgentCandidateStatus.DRAFTED && candidate.applicationId).map(view);
   const waiting = candidates.filter((candidate) => candidate.status !== AgentCandidateStatus.DRAFTED);
   const last = settings.agentRuns[0];
 
