@@ -1,3 +1,4 @@
+/* global chrome */
 const fileInput = document.getElementById("profile-file");
 const fillButton = document.getElementById("fill");
 const clearButton = document.getElementById("clear");
