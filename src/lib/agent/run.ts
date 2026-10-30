@@ -70,7 +70,7 @@ export function isQualifiedAgentPosting(posting: FoundPosting): boolean {
   if (!title || !company || description.length < 80 || !url || !url.startsWith("https://")) return false;
 
   const seniorTechnologyRole =
-    /\b(head of (?:it|technology|information technology)|avp(?:\s*[-–]?\s*(?:it|technology))?|chief technology officer|cto|it delivery manager|delivery manager[ -]it|digital transformation (?:head|director|lead)|head of digital transformation)\b/i.test(title);
+    /\b(head of (?:it|technology|information technology)|avp\s*[-–]?\s*(?:it|technology)|chief technology officer|cto|it delivery manager|delivery manager[ -]it|digital transformation (?:head|director|lead)|head of digital transformation)\b/i.test(title);
   const fintechProductRole =
     /\bproduct manager\b/i.test(title) &&
     /fintech|financial technology|bfs[iy]|nbfc|banking|lending|digital lending|loan|payments|financial services/i.test([title, company, description].join(" "));
