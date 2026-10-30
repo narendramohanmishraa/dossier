@@ -1,7 +1,7 @@
 # Dossier with Docker Compose (see the installation guide, https://github.com/AienTech/dossier/wiki). Save this
 # file as compose.yml in a folder of its own, put POSTGRES_PASSWORD,
 # DOSSIER_PASSWORD (a hash of your password, from `docker run --rm -it
-# ghcr.io/aientech/dossier hash-password`) and DOSSIER_SECRET in a .env file
+# ghcr.io/narendramohanmishraa/dossier:main hash-password`) and DOSSIER_SECRET in a .env file
 # next to it, then:
 #
 #   docker compose up -d
@@ -18,7 +18,7 @@ services:
       POSTGRES_DB: dossier
     volumes:
       # Postgres 18+ keeps data in a versioned subdirectory, so mount the parent.
-      - pgdata:/var/lib/postgresql
+      - dossier-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dossier -d dossier"]
       interval: 5s
@@ -27,6 +27,7 @@ services:
 
   app:
     image: ${DOSSIER_IMAGE:-ghcr.io/narendramohanmishraa/dossier:main}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       db:
@@ -62,7 +63,7 @@ services:
     ports:
       - "127.0.0.1:${DOSSIER_PORT:-3000}:3000"
     volumes:
-      - data:/data
+      - dossier-data:/data
     # Room for Chromium, which prints the PDFs.
     mem_limit: 1g
     # Lets http://host.docker.internal reach Ollama (:11434) or LM Studio
@@ -80,6 +81,6 @@ services:
       - ollama:/root/.ollama
 
 volumes:
-  pgdata:
-  data:
+  dossier-db-data:
+  dossier-data:
   ollama:
