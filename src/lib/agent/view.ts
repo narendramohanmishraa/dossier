@@ -61,7 +61,7 @@ export type AgentView = {
   drafts: AgentCandidateView[];
   /** At or above the minimum score, best first. */
   scored: AgentCandidateView[];
-  /** Below it: kept so they don't come back, shown on request. */
+  /** Always empty: below-threshold candidates stay stored for dedupe but are never surfaced. */
   belowMinimum: AgentCandidateView[];
 };
 
@@ -70,8 +70,9 @@ export async function countAgentQueue(): Promise<number> {
   const { agentMinScore } = await loadSettings();
   return prisma.agentCandidate.count({
     where: {
+      score: { gte: agentMinScore },
       OR: [
-        { status: AgentCandidateStatus.SCORED, score: { gte: agentMinScore } },
+        { status: AgentCandidateStatus.SCORED },
         { status: AgentCandidateStatus.DRAFTED, applicationId: { not: null } },
       ],
     },
@@ -128,7 +129,7 @@ export async function loadAgentView(now = new Date()): Promise<AgentView> {
     applicationId: candidate.applicationId,
     draftJobId: draftJob.get(candidate.id) ?? null,
   });
-  const drafts = candidates.filter((candidate) => candidate.status === AgentCandidateStatus.DRAFTED && candidate.applicationId).map(view);
+  const drafts = candidates.filter((candidate) => candidate.status === AgentCandidateStatus.DRAFTED && candidate.applicationId && candidate.score >= settings.agentMinScore).map(view);
   const waiting = candidates.filter((candidate) => candidate.status !== AgentCandidateStatus.DRAFTED);
   const last = settings.agentRuns[0];
 
@@ -147,6 +148,6 @@ export async function loadAgentView(now = new Date()): Promise<AgentView> {
     runJobId: runJobs[0]?.id ?? null,
     drafts,
     scored: waiting.filter((candidate) => candidate.score >= settings.agentMinScore).map(view),
-    belowMinimum: waiting.filter((candidate) => candidate.score < settings.agentMinScore).map(view),
+    belowMinimum: [],
   };
 }
