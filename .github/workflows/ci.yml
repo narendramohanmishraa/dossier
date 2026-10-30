@@ -170,7 +170,7 @@ jobs:
   image:
     name: Publish container image
     needs: [checked, check, e2e]
-    if: ${{ !cancelled() && !failure() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/india-hourly-job-agent') }}
+    if: ${{ !cancelled() && !failure() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/india-hourly-job-agent') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
