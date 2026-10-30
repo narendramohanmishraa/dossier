@@ -124,7 +124,7 @@ export function AgentSection({
           </p>
         </div>
         <p className="text-meta text-muted">With the default India search, each scan queries remote roles across India, plus Delhi, Gurugram (Gurgaon) and Noida. Custom place or remote-only filters narrow the search. Remote filtering depends on the selected provider.</p>
-        <p className="text-meta text-muted">The default four-query scan can use up to 2,880 provider requests in a 30-day month. Check your selected provider’s quota and billing before enabling the agent.</p>
+        <p className="text-meta text-muted">The default four-query scan can use up to 2,880 provider requests in a 30-day month. Dossier currently lists JSearch’s free tier at 200/month, which will not sustain hourly scans. Verify your selected provider’s current quota and billing before enabling the agent.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
