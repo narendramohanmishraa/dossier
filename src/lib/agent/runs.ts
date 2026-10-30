@@ -7,7 +7,7 @@ import { loadSettings, saveSettings } from "@/lib/settings-data";
 // which the task-data sweep deletes after "Keep task data for": the limits
 // below must hold whatever that is set to.
 
-/** 200/month provider budget, with a 10-request safety margin. */
+/** 200/month provider budget, with a 20-request safety margin. */
 export const AGENT_MAX_RUNS_PER_MONTH = 180;
 /** One source request every four hours (six per day, 180 per 30-day month). */
 export const AGENT_SCAN_INTERVAL_MS = 4 * 60 * 60 * 1000;
