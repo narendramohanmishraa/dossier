@@ -33,7 +33,7 @@ describe("Settings → Job agent (E16-7)", () => {
     open();
     const toggle = screen.getByRole("switch", { name: "Run the job agent" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it's on.");
+    expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it is on.");
     await user.click(toggle);
     expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query, minScore: 95, autoDraft: true });
     expect(toggle).toHaveAccessibleDescription("On. One source search every four hours, with automatic resume and cover-letter drafts for 95+ matches.");
@@ -76,7 +76,9 @@ describe("Settings → Job agent (E16-7)", () => {
 
   it("explains the limits in plain words", () => {
     open();
-    expect(screen.getByText(/^One source search every four hours, capped at 180 searches in any rolling 30 days\. Each run scores up to 15 postings\./)).toBeInTheDocument();
+    expect(screen.getByText(/Each scan makes one India-wide source query to protect the request budget/)).toBeInTheDocument();
+    expect(screen.getByText(/The four-hour schedule uses at most 180 source requests in any rolling 30 days, leaving a 20-request reserve against a 200\/month plan\. Manual scans count against the same budget\./)).toBeInTheDocument();
+    expect(screen.getByText(/This cap applies to the agent\. Searches you run separately in Find jobs may use the same provider quota/)).toBeInTheDocument();
   });
 
   it("points to the source or AI provider while one isn't set up", () => {
