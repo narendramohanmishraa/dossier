@@ -11,9 +11,22 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dossier
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dossier"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
-      - name: Verify runner startup
+      - name: Confirm runner and database startup
         run: |
-          echo "GitHub Actions runner started successfully."
-          echo "Branch: $GITHUB_REF"
-          echo "Commit: $GITHUB_SHA"
+          echo "Runner started successfully."
+          pg_isready -h localhost -p 5432 -U postgres
