@@ -123,8 +123,8 @@ export function AgentSection({
             , through the source in Settings → Job search. Postings you saved, dismissed or applied for there are left out.
           </p>
         </div>
-        <p className="text-meta text-muted">Each hourly scan runs four searches: remote roles across India, plus Delhi, Gurugram (Gurgaon) and Noida. Remote filtering depends on the selected provider.</p>
-        <p className="text-meta text-muted">Four searches per hourly scan can use up to 2,880 provider requests in a 30-day month. Check your selected provider’s quota and billing before enabling the agent.</p>
+        <p className="text-meta text-muted">With the default India search, each scan queries remote roles across India, plus Delhi, Gurugram (Gurgaon) and Noida. Custom place or remote-only filters narrow the search. Remote filtering depends on the selected provider.</p>
+        <p className="text-meta text-muted">The default four-query scan can use up to 2,880 provider requests in a 30-day month. Check your selected provider’s quota and billing before enabling the agent.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
@@ -180,7 +180,7 @@ export function AgentSection({
       </Card>
 
       <p className="text-meta text-muted">
-        Four location searches each hour, and at most 24 scans in any rolling 24 hours. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
+        The default India search runs four location queries per scan; at most 24 scans run in any rolling 24 hours. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
         {settings.autoDraft ? ` and prepares up to ${plural(settings.maxDrafts, "draft", "drafts")}` : ""}. Scoring and drafts go to your AI provider with your profile, as a new application does; the job source only gets the search.
       </p>
     </>
