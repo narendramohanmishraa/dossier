@@ -124,6 +124,7 @@ export function AgentSection({
           </p>
         </div>
         <p className="text-meta text-muted">The India-wide search includes remote opportunities and roles listed in Delhi, Gurugram (Gurgaon) and Noida. Results depend on the selected job source.</p>
+        <p className="text-meta text-muted">Hourly scans can use up to 720 search requests in a 30-day month. Check your selected provider’s quota and billing before enabling the agent.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
