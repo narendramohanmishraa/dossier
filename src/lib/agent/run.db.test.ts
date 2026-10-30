@@ -92,7 +92,7 @@ const posting = (id: string, title: string, posted: string, extra: Partial<Found
 const page = [
   posting("a", "Head of IT", "2026-10-19T00:00:00Z"),
   posting("b", "IT Delivery Manager", "2026-10-18T00:00:00Z"),
-  posting("c", "CTO", "2026-10-17T00:00:00Z", { url: "" }),
+  posting("c", "CTO", "2026-10-17T00:00:00Z"),
 ];
 
 const context = (abort?: AbortController): JobContext & { steps: string[] } => {
