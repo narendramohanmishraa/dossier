@@ -8,7 +8,7 @@ import { loadSettings } from "@/lib/settings-data";
 
 import { AGENT_JOB_KEY, agentScanJob } from "./jobs";
 import { agentSetupProblem } from "./run";
-import { AGENT_SCAN_INTERVAL_MS } from "./runs";
+import { AGENT_MAX_RUNS_PER_MONTH, AGENT_SCAN_INTERVAL_MS, runLimitProblem, runsInPastMonth } from "./runs";
 
 // The agent checks every minute and starts a scan once every four hours after the
 // previous run. This timer lives in the app process, so Dossier must run as a
@@ -37,6 +37,7 @@ export async function startDueRun(now = new Date()): Promise<string | null> {
   const settings = await loadSettings();
   if (!settings.agentEnabled) return null;
   if (await agentSetupProblem(settings.agentQuery)) return null;
+  if (runLimitProblem(settings.agentRuns, now, { manual: false })) return null;
   if (!scheduledRunDue(now, settings.agentHour, "UTC", settings.agentRuns)) return null;
   if ((await findUnfinishedJobs(AGENT_JOB_KEY)).length > 0) return null;
   return startJob(agentScanJob, { manual: false }, { key: AGENT_JOB_KEY });
