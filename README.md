@@ -122,7 +122,7 @@ For a server that stays online while your laptop is off, use a VPS or other alwa
    docker compose -f compose.production.yml --env-file production.env up -d
    ```
 
-3. Put a reverse proxy with HTTPS in front of the localhost-bound app port. Keep the `dossier-db-data` and `dossier-data` volumes; they contain the database and Dossier files.
+3. Put a reverse proxy with HTTPS in front of the localhost-bound app port. Keep the `pgdata` and `data` volumes; they contain the database and Dossier files.
 
 The workflow publishes the `main` image tag and a commit-SHA tag when it runs successfully. The production Compose file uses `pull_policy: always` so `docker compose up -d` checks for the latest published `main` image. If the GHCR package is private, authenticate on the server with a GitHub token that has package read access (`docker login ghcr.io`). You can make the package public in the GitHub Packages settings to allow unauthenticated pulls.
 
