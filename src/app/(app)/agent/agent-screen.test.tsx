@@ -95,7 +95,7 @@ describe("AgentScreen (E16-6)", () => {
     expect(within(scored).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Posting s1", "Posting s2"]);
     expect(within(scored).getAllByRole("list", { name: "Why it fits" })[0]).toHaveTextContent("Reason for s1");
     expect(within(scored).getByText("German required")).toBeInTheDocument();
-    expect(within(scored).getByRole("alert")).toHaveTextContent("The draft couldn't be prepared. Try again.");
+    expect(within(scored).getByRole("alert")).toHaveTextContent("Draft generation failed.");
     const [link] = within(scored).getAllByRole("link", { name: /Open posting/ });
     expect(link).toHaveAttribute("href", "https://jobs.example/s1");
     expect(link).toHaveAttribute("target", "_blank");
