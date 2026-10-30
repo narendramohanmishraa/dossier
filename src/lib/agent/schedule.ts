@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { loadSettings } from "@/lib/settings-data";
 
 import { AGENT_JOB_KEY, agentScanJob } from "./jobs";
+import { agentSetupProblem } from "./run";
 import { AGENT_MANUAL_INTERVAL_MS } from "./runs";
 
 // The agent checks every minute and starts a scan once an hour after the
@@ -35,6 +36,7 @@ export function nextAgentRun(now: Date, _hour: number, _timeZone: string, runs: 
 export async function startDueRun(now = new Date()): Promise<string | null> {
   const settings = await loadSettings();
   if (!settings.agentEnabled) return null;
+  if (await agentSetupProblem(settings.agentQuery)) return null;
   if (!scheduledRunDue(now, settings.agentHour, "UTC", settings.agentRuns)) return null;
   if ((await findUnfinishedJobs(AGENT_JOB_KEY)).length > 0) return null;
   return startJob(agentScanJob, { manual: false }, { key: AGENT_JOB_KEY });
