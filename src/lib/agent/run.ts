@@ -49,8 +49,8 @@ const stopped = (message: string): AgentScanResult => ({ found: 0, fresh: 0, sco
 export const agentQueryReady = (query: SearchQuery) => Boolean(query.keywords.trim() && query.country);
 
 /**
- * India default: search remote roles and each requested city independently.
- * Other saved searches keep their original single-query behavior.
+ * One source request per scan: custom searches and the default India-wide search
+ * both remain a single query to keep the monthly provider budget predictable.
  */
 export function agentSearchQueries(query: SearchQuery): SearchQuery[] {
   // One broad India-wide source query keeps the default plan below 200/month.
@@ -145,7 +145,7 @@ export async function runAgentScan({ manual }: { manual: boolean }, context: Job
   const source = config.source!;
   let postings: FoundPosting[];
   try {
-    // One first-page India-wide search: six scheduled scans per day, budgeted to 180/month.
+    // One first-page India-wide or custom search: at most six scheduled scans per day, capped at 180/month.
     const credentials = credentialsFor(config, source);
     const request = requestContext(source);
     const [query] = agentSearchQueries(settings.agentQuery);
