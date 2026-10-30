@@ -36,7 +36,7 @@ afterAll(() => prisma().$disconnect());
 describe("the Agent screen's data (E16-6)", () => {
   it("shows drafts and scored postings only at or above 95, best first", async () => {
     const application = await prisma().application.create({ data: { origin: "AGENT", awaitingReview: true } });
-    await candidate("draft", 97, { status: "DRAFTED", applicationId: application.id });
+    await candidate("draft", 90, { status: "DRAFTED", applicationId: application.id });
     const good = await candidate("good", 95);
     await candidate("better", 99);
     await candidate("low", 94);
