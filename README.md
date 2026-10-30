@@ -128,6 +128,8 @@ The workflow publishes the `main` image tag and a commit-SHA tag when it runs su
 
 The container is built by GitHub; it still needs an always-on host to run it. A container image in GHCR is not itself a running server.
 
+**Moving an existing local installation:** Docker volumes live on the machine where Docker runs; reusing the same volume names on a VPS creates new, empty volumes there. Before moving, use Dossier's **Settings → Data → Export** on the laptop and keep a separate database/data backup. Restore the export on the VPS after the new instance is running. Keep the existing `POSTGRES_PASSWORD` and `DOSSIER_SECRET` values during a move unless you deliberately perform the corresponding database-password and encryption-key rotation; changing `DOSSIER_SECRET` can make previously encrypted provider keys unreadable. Do not run a new empty production stack against an existing data directory before you have a verified backup.
+
 ## Documentation
 
 The [wiki](https://github.com/AienTech/dossier/wiki) has what comes after installing:
