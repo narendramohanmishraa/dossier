@@ -58,10 +58,10 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             enabled: settings.agentEnabled,
             // Empty legacy settings receive the India-wide leadership and FinTech search.
             query: settings.agentQuery.keywords.trim() ? settings.agentQuery : DEFAULT_AGENT_QUERY,
-            minScore: settings.agentMinScore,
+            minScore: Math.max(95, settings.agentMinScore),
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
-            autoDraft: settings.agentAutoDraft,
+            autoDraft: settings.agentEnabled ? true : settings.agentAutoDraft,
           }}
           source={(await loadJobSearchConfig()).source}
           aiReady={await isAiConfigured()}
