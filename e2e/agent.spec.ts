@@ -27,7 +27,7 @@ test("finds ultra-close India roles, drafts automatically and never submits appl
   await page.getByRole("link", { name: "Agent", exact: true }).click();
   await expect(page).toHaveURL("/agent");
   await page.getByRole("button", { name: "Run now" }).click();
-  await expect(page.getByText("2 new postings are waiting for a look.").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/2 new postings are waiting for a look\./).first()).toBeVisible({ timeout: 30_000 });
   expect(await fakeJobSearches()).toBe(searches + 1);
 
   // The best 95+ match is drafted in its own background job and waits for review.
