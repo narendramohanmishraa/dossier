@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { isAiConfigured, loadAiConfig, loadAiSettingsView } from "@/lib/ai/config";
 import { jobSearchView, loadJobSearchConfig } from "@/lib/job-search/config";
 import { COUNTRIES } from "@/lib/job-search/countries";
-import { loadSearch } from "@/lib/posting-searches";
+import { DEFAULT_AGENT_QUERY } from "@/lib/job-search/search";
 import { providerOption } from "@/lib/ai/provider-options";
 import { lastNightlyBackup } from "@/lib/backup-schedule";
 import { backupsDir } from "@/lib/backups";
@@ -56,8 +56,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
         <AgentSection
           initial={{
             enabled: settings.agentEnabled,
-            // With no search of its own yet, it starts from the last one in Find jobs.
-            query: settings.agentQuery.keywords.trim() ? settings.agentQuery : ((await loadSearch())?.query ?? settings.agentQuery),
+            // Empty legacy settings receive the India-wide leadership and FinTech search.
+            query: settings.agentQuery.keywords.trim() ? settings.agentQuery : DEFAULT_AGENT_QUERY,
             minScore: settings.agentMinScore,
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
