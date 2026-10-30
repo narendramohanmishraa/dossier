@@ -67,7 +67,7 @@
   };
 
   // Never infer answers to legal, demographic, identity or eligibility questions.
-  const sensitiveHint = /gender|ethnic|race|disabilit|veteran|military|pronoun|date of birth|birth date|\bdob\b|\bage\b|social security|national id|passport|citizenship|nationality|work authori[sz]|right to work|visa|sponsor|criminal|conviction|salary|compensation|expected pay|notice period|religion|marital status|sexual orientation|equal employment|\beeo\b|legal acknowledgement|privacy consent|terms and conditions/;
+  const sensitiveHint = /gender|ethnic|race|disabilit|veteran|military|pronoun|preferred name|nickname|date of birth|birth date|\bdob\b|\bage\b|social security|national id|passport|citizenship|nationality|work authori[sz]|right to work|visa|sponsor|criminal|conviction|salary|compensation|expected pay|notice period|religion|marital status|sexual orientation|equal employment|\beeo\b|legal acknowledgement|privacy consent|terms and conditions/;
 
   const fieldValue = (element, profile) => {
     const hint = fieldHint(element);
