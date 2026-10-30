@@ -13,10 +13,10 @@ vi.mock("@/components/toast", () => ({ toast: vi.fn(), toastResult: (result: { o
 const initial: AgentSettings = {
   enabled: false,
   query: { keywords: "Data scientist", place: "Berlin", country: "de", radiusKm: 25, remoteOnly: false, postedWithin: "any" },
-  minScore: 70,
+  minScore: 95,
   maxScores: 15,
   maxDrafts: 3,
-  autoDraft: false,
+  autoDraft: true,
 };
 const countries = [
   { code: "de", name: "Germany" },
@@ -36,7 +36,7 @@ describe("Settings → Job agent (E16-7)", () => {
     expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it's on.");
     await user.click(toggle);
     expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query });
-    expect(toggle).toHaveAccessibleDescription("On. It searches once an hour. You can also run it manually when the hourly limit allows.");
+    expect(toggle).toHaveAccessibleDescription("On. One source search every four hours, with automatic resume and cover-letter drafts for 95+ matches.");
   });
 
   it("needs keywords and a country to turn on", async () => {
@@ -54,23 +54,24 @@ describe("Settings → Job agent (E16-7)", () => {
     open();
     await user.type(screen.getByLabelText("What"), " NLP");
     await waitFor(() => expect(saveAgentSettings).toHaveBeenLastCalledWith({ query: { ...initial.query, keywords: "Data scientist NLP" } }), { timeout: 2000 });
-    await user.selectOptions(screen.getByLabelText("Minimum score"), "80 of 100");
-    expect(saveAgentSettings).toHaveBeenLastCalledWith({ minScore: 80 });
+    await user.selectOptions(screen.getByLabelText("Minimum score"), "96 of 100");
+    expect(saveAgentSettings).toHaveBeenLastCalledWith({ minScore: 96 });
     await user.selectOptions(screen.getByLabelText("Postings scored per run"), "20");
     expect(saveAgentSettings).toHaveBeenLastCalledWith({ maxScores: 20 });
   });
 
-  it("prepares no drafts on its own unless asked, and then up to the cap", async () => {
+  it("prepares drafts by default and lets the user turn automatic drafting off", async () => {
     const user = userEvent.setup();
     open();
-    expect(screen.getByLabelText("Drafts per run, at most")).toBeDisabled();
+    const drafts = screen.getByLabelText("Drafts per run, at most");
+    expect(drafts).toBeEnabled();
     const toggle = screen.getByRole("switch", { name: "Prepare drafts on its own" });
-    expect(toggle).toHaveAccessibleDescription("Off. You choose which postings get a draft with Prepare draft.");
-    await user.click(toggle);
-    expect(saveAgentSettings).toHaveBeenLastCalledWith({ autoDraft: true });
-    await user.selectOptions(screen.getByLabelText("Drafts per run, at most"), "5");
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    await user.selectOptions(drafts, "5");
     expect(saveAgentSettings).toHaveBeenLastCalledWith({ maxDrafts: 5 });
-    expect(toggle).toHaveAccessibleDescription(/up to 5 drafts/);
+    await user.click(toggle);
+    expect(saveAgentSettings).toHaveBeenLastCalledWith({ autoDraft: false });
+    expect(toggle).toHaveAccessibleDescription("Off. You choose which postings get a draft with Prepare draft.");
   });
 
   it("explains the limits in plain words", () => {
