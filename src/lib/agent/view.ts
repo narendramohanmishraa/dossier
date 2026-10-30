@@ -70,9 +70,8 @@ export async function countAgentQueue(): Promise<number> {
   const { agentMinScore } = await loadSettings();
   return prisma.agentCandidate.count({
     where: {
-      score: { gte: agentMinScore },
       OR: [
-        { status: AgentCandidateStatus.SCORED },
+        { status: AgentCandidateStatus.SCORED, score: { gte: agentMinScore } },
         { status: AgentCandidateStatus.DRAFTED, applicationId: { not: null } },
       ],
     },
