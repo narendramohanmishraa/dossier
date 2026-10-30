@@ -29,12 +29,14 @@ export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, run
 /** The next run, or the first time a slot leaves the rolling 30-day budget. */
 export function nextAgentRun(now: Date, _hour: number, _timeZone: string, runs: readonly AgentRun[]): Date {
   const recent = runsInPastMonth(runs, now);
+  const last = runs[0];
+  const intervalReadyAt = last ? Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS : now.getTime();
   if (recent.length >= AGENT_MAX_RUNS_PER_MONTH) {
     const oldest = Math.min(...recent.map((run) => Date.parse(run.at)));
-    return new Date(oldest + 30 * 24 * 60 * 60 * 1000);
+    const budgetReadyAt = oldest + 30 * 24 * 60 * 60 * 1000;
+    return new Date(Math.max(budgetReadyAt, intervalReadyAt));
   }
-  const last = runs[0];
-  const due = last ? Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS : now.getTime();
+  const due = intervalReadyAt;
   return new Date(due > now.getTime() ? due : Math.ceil(now.getTime() / CHECK_MS) * CHECK_MS);
 }
 
