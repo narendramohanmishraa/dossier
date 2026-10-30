@@ -7,9 +7,9 @@ import { loadSettings, saveSettings } from "@/lib/settings-data";
 // which the task-data sweep deletes after "Keep task data for": the limits
 // below must hold whatever that is set to.
 
-/** At most this many runs in any 24 hours, scheduled or Run now. */
-export const AGENT_MAX_RUNS_PER_DAY = 3;
-/** Run now waits this long after the previous run of either kind. */
+/** Hourly cadence, with at most 24 runs in any rolling 24-hour window. */
+export const AGENT_MAX_RUNS_PER_DAY = 24;
+/** Minimum time between any two runs, scheduled or manual. */
 export const AGENT_MANUAL_INTERVAL_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -18,14 +18,14 @@ export const runsInPastDay = (runs: readonly AgentRun[], now: Date) =>
   runs.filter((run) => now.getTime() - Date.parse(run.at) < DAY_MS);
 
 /** Why no run may start now, in words, or null when one may. */
-export function runLimitProblem(runs: readonly AgentRun[], now: Date, { manual }: { manual: boolean }): string | null {
+export function runLimitProblem(runs: readonly AgentRun[], now: Date, _options: { manual: boolean }): string | null {
   const recent = runsInPastDay(runs, now);
   if (recent.length >= AGENT_MAX_RUNS_PER_DAY) {
     const free = new Date(Math.min(...recent.map((run) => Date.parse(run.at))) + DAY_MS);
     return `The agent has run ${AGENT_MAX_RUNS_PER_DAY} times in the past 24 hours, as many as it may. ${waitText(free.getTime() - now.getTime())}`;
   }
   const last = runs[0];
-  if (manual && last) {
+  if (last) {
     const wait = Date.parse(last.at) + AGENT_MANUAL_INTERVAL_MS - now.getTime();
     if (wait > 0) return `The agent ran less than an hour ago. ${waitText(wait)}`;
   }
