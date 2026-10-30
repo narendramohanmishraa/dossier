@@ -163,12 +163,14 @@ export const settingsSchema = z.object({
   /** Legacy daily-schedule preference retained for existing installations. */
   agentHour: z.coerce.number().int().min(0).max(23).catch(7),
   /** Postings scored below this stay out of the queue. */
-  agentMinScore: z.coerce.number().int().min(0).max(100).catch(95),
+  agentMinScore: z.coerce.number().int().min(95).max(100).catch(95),
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
   /** Whether a run prepares drafts for its best postings; enabled by default for the requested workflow. */
   agentAutoDraft: flag(true),
+  /** One-time migration that enables auto-drafting for existing installations; users can then change it. */
+  agentAutoDraftConfigured: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */
   agentRuns: json(z.array(agentRunSchema)).catch([]),
   // Startups (#222): when the screen was last opened, since the daily refresh
