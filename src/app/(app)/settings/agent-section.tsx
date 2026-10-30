@@ -125,6 +125,7 @@ export function AgentSection({
         </div>
         <p className="text-meta text-muted">Each scan makes one India-wide source query to protect the request budget. Provider ranking determines which remote and city-based listings appear; coverage is not exhaustive city-by-city.</p>
         <p className="text-meta text-muted">The four-hour schedule uses at most 180 source requests in any rolling 30 days, leaving a 20-request reserve against a 200/month plan. Manual scans count against the same budget.</p>
+        <p className="text-meta text-muted">This cap applies to the agent. Searches you run separately in Find jobs may use the same provider quota, so the 20-request reserve is not guaranteed if you search manually.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
