@@ -62,6 +62,20 @@ export const EMPTY_QUERY: SearchQuery = {
   postedWithin: "any",
 };
 
+/**
+ * Starting search for the hourly job agent. The query is intentionally
+ * India-wide so one source request can cover remote and on-site roles in
+ * Gurugram, Noida, Delhi and other Indian locations.
+ */
+export const DEFAULT_AGENT_QUERY: SearchQuery = {
+  keywords: '"Head of IT" OR "AVP IT" OR CTO OR "IT Delivery Manager" OR "Digital Transformation Head" OR "Product Manager FinTech"',
+  place: "India",
+  country: "in",
+  radiusKm: DEFAULT_RADIUS_KM,
+  remoteOnly: false,
+  postedWithin: "week",
+};
+
 /** A posting as a source found it, in one shape for every source. */
 export const foundPostingSchema = z.object({
   source: z.enum(JOB_SOURCES),
