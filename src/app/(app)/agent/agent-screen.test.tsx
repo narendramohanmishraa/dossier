@@ -39,7 +39,7 @@ const card = (id: string, score: number, extra: Partial<AgentCandidateView> = {}
 const view: AgentView = {
   enabled: true,
   autoDraft: false,
-  minScore: 70,
+  minScore: 95,
   maxScores: 15,
   maxDrafts: 3,
   search: "Product designer · Rotterdam, 25 km · via JSearch",
@@ -112,7 +112,7 @@ describe("AgentScreen (E16-6)", () => {
     const user = userEvent.setup();
     open();
     expect(screen.queryByText("Posting b1")).not.toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: "1 below your minimum score of 70 · Show" });
+    const toggle = screen.getByRole("button", { name: "1 below your minimum score of 95 · Show" });
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Posting b1")).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe("AgentScreen (E16-6)", () => {
     second.unmount();
 
     open({ limitReached: true });
-    expect(screen.getByRole("note")).toHaveTextContent("The agent has reached its limit of 24 runs in the past 24 hours");
+    expect(screen.getByRole("note")).toHaveTextContent("The agent has used its 180-search rolling 30-day budget");
   });
 
   it("says when there's nothing yet", () => {
