@@ -35,7 +35,7 @@ describe("Settings → Job agent (E16-7)", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it's on.");
     await user.click(toggle);
-    expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query });
+    expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query, minScore: 95, autoDraft: true });
     expect(toggle).toHaveAccessibleDescription("On. One source search every four hours, with automatic resume and cover-letter drafts for 95+ matches.");
   });
 
