@@ -42,8 +42,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const params = await searchParams;
   const section = settingsSectionFromParam(params.section);
   const settings = await loadSettings();
-  // One-time upgrade for existing installs: auto-drafting is enabled as requested.
-  // Turn automatic document drafting on once for existing installations.
+  // One-time upgrade: automatic document drafting is enabled by default for this workflow.
   // Preserve any search the user has already configured; the setting remains
   // user-controllable after this migration has been recorded.
   if (!settings.agentAutoDraftConfigured) {
