@@ -63,8 +63,8 @@ export const EMPTY_QUERY: SearchQuery = {
 };
 
 /**
- * Base search for the hourly India job agent. The agent expands this into
- * four source queries: remote India, Delhi, Gurugram and Noida.
+ * Base query for the four-hour India job agent. Each scan makes one source
+ * request to keep usage below the selected provider's monthly budget.
  */
 export const DEFAULT_AGENT_QUERY: SearchQuery = {
   keywords: '"Head of IT" OR "AVP IT" OR CTO OR "IT Delivery Manager" OR "Digital Transformation Head" OR "Product Manager FinTech"',
