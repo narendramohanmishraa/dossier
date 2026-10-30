@@ -123,8 +123,8 @@ export function AgentSection({
             , through the source in Settings → Job search. Postings you saved, dismissed or applied for there are left out.
           </p>
         </div>
-        <p className="text-meta text-muted">With the default India search, each scan queries remote roles across India, plus Delhi, Gurugram (Gurgaon) and Noida. Custom place or remote-only filters narrow the search. Remote filtering depends on the selected provider.</p>
-        <p className="text-meta text-muted">The default four-query scan can use up to 2,880 provider requests in a 30-day month. Dossier currently lists JSearch’s free tier at 200/month, which will not sustain hourly scans. Verify your selected provider’s current quota and billing before enabling the agent.</p>
+        <p className="text-meta text-muted">Each scan makes one India-wide source query to protect the request budget. Provider ranking determines which remote and city-based listings appear; coverage is not exhaustive city-by-city.</p>
+        <p className="text-meta text-muted">The four-hour schedule uses at most 180 source requests in any rolling 30 days, leaving a 20-request reserve against a 200/month plan. Manual scans count against the same budget.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
@@ -180,7 +180,7 @@ export function AgentSection({
       </Card>
 
       <p className="text-meta text-muted">
-        The default India search runs four location queries per scan; at most 24 scans run in any rolling 24 hours. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
+        One India-wide source search runs every four hours, with a hard cap of 180 searches in any rolling 30 days. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
         {settings.autoDraft ? ` and prepares up to ${plural(settings.maxDrafts, "draft", "drafts")}` : ""}. Scoring and drafts go to your AI provider with your profile, as a new application does; the job source only gets the search.
       </p>
     </>
