@@ -97,7 +97,7 @@ export const agentRunSchema = z.object({
 });
 export type AgentRun = z.infer<typeof agentRunSchema>;
 /** How many runs are kept: more than a day's worth, for the limit and the screen. */
-export const AGENT_RUNS_KEPT = 30;
+export const AGENT_RUNS_KEPT = 190;
 
 export const settingsSchema = z.object({
   // AI provider (SET-1). Null means "not set in the app": fall back to the
@@ -163,12 +163,12 @@ export const settingsSchema = z.object({
   /** Legacy daily-schedule preference retained for existing installations. */
   agentHour: z.coerce.number().int().min(0).max(23).catch(7),
   /** Postings scored below this stay out of the queue. */
-  agentMinScore: z.coerce.number().int().min(0).max(100).catch(75),
+  agentMinScore: z.coerce.number().int().min(0).max(100).catch(90),
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
-  /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
-  agentAutoDraft: flag(false),
+  /** Whether a run prepares drafts for its best postings; enabled by default for the requested workflow. */
+  agentAutoDraft: flag(true),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */
   agentRuns: json(z.array(agentRunSchema)).catch([]),
   // Startups (#222): when the screen was last opened, since the daily refresh
