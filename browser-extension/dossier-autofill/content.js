@@ -119,8 +119,6 @@
   const preview = (profile) => {
     const elements = Array.from(document.querySelectorAll("input, textarea, select"));
     const fields = [];
-    let index = 0;
-
     for (const element of elements) {
       if (!supportedControl(element) || !visible(element) || element.disabled || element.readOnly) continue;
       if (String(element.value || "").trim() || element.dataset.dossierAutofilled) continue;
@@ -134,7 +132,6 @@
         displayValue = String(option.textContent || option.label || value).trim();
       }
 
-      index += 1;
       const id = element.dataset.dossierAutofillId || `field-${crypto.randomUUID()}`;
       element.dataset.dossierAutofillId = id;
       fields.push({
