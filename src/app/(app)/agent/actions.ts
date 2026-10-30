@@ -86,8 +86,10 @@ function revalidateAgent() {
  * draft under way is reused, and one already made is answered with.
  */
 export const prepareAgentDraft = action(z.object({ candidateId }), async ({ candidateId }) => {
-  const candidate = await prisma.agentCandidate.findUnique({ where: { id: candidateId }, select: { status: true, applicationId: true } });
+  const candidate = await prisma.agentCandidate.findUnique({ where: { id: candidateId }, select: { status: true, applicationId: true, score: true } });
   if (!candidate) throw new ActionError("That posting is no longer in the agent's queue.");
+  const settings = await loadSettings();
+  if (candidate.score < settings.agentMinScore) throw new ActionError("Only " + settings.agentMinScore + "+ matches can be prepared as agent drafts.");
   if (candidate.status === AgentCandidateStatus.DRAFTED && candidate.applicationId) return { jobId: null, applicationId: candidate.applicationId };
   const [unfinished] = await findUnfinishedJobs(draftJobKey(candidateId));
   if (unfinished) return { jobId: unfinished.id, applicationId: null };
