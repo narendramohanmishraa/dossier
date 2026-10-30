@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DateFormat } from "@/generated/prisma/enums";
+import { DEFAULT_AGENT_QUERY } from "@/lib/job-search/search";
 
 import { DATE_FORMATS, formatDocumentDate, maxPages, pagesInWords, settingsFromRows, settingValue, type SettingsData } from "./settings";
 
@@ -63,9 +64,9 @@ describe("stored settings", () => {
       adzunaKeyEnc: null,
       arbeitsagenturAcceptedAt: null,
       agentEnabled: false,
-      agentQuery: { keywords: "", place: "", country: "", radiusKm: 25, remoteOnly: false, postedWithin: "any" },
+      agentQuery: DEFAULT_AGENT_QUERY,
       agentHour: 7,
-      agentMinScore: 70,
+      agentMinScore: 75,
       agentMaxScores: 15,
       agentMaxDrafts: 3,
       agentAutoDraft: false,
@@ -160,7 +161,7 @@ describe("the job agent's settings (E16)", () => {
       { key: "agentMaxScores", value: "0" },
       { key: "agentMaxDrafts", value: "11" },
     ]);
-    expect(odd).toMatchObject({ agentQuery: { keywords: "", country: "" }, agentRuns: [], agentHour: 7, agentMinScore: 70, agentMaxScores: 15, agentMaxDrafts: 3 });
+    expect(odd).toMatchObject({ agentQuery: DEFAULT_AGENT_QUERY, agentRuns: [], agentHour: 7, agentMinScore: 75, agentMaxScores: 15, agentMaxDrafts: 3 });
   });
 });
 
