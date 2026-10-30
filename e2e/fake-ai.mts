@@ -81,7 +81,7 @@ const answers: Record<string, (messages: Message[]) => unknown> = {
 
   // Ultra-close India technology leadership roles score 95+; CTO remains below the strict queue threshold.
   posting_score: (messages) => {
-    const { title } = section(messages[1].content, "The posting's facts:\\n") as { title: string };
+    const { title } = section(messages[1].content, "The posting's facts:\n") as { title: string };
     const score = /head of it/i.test(title) ? 99 : /it delivery manager/i.test(title) ? 97 : /cto/i.test(title) ? 88 : 60;
     return {
       score,
