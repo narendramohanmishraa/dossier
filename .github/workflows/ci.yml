@@ -53,7 +53,7 @@ jobs:
     name: Lint, type-check and test
     needs: checked
     # Runs on pull requests too, where "checked" is skipped.
-    if: ${{ !cancelled() && needs.checked.outputs.skip != 'true' }}
+    if: ${{ always() && !cancelled() && (github.event_name != 'push' || needs.checked.outputs.skip != 'true') }}
     runs-on: ubuntu-latest
     services:
       # For the database tests (*.db.test.ts), which create and migrate their own
@@ -109,7 +109,7 @@ jobs:
   e2e:
     name: End-to-end tests
     needs: checked
-    if: ${{ !cancelled() && needs.checked.outputs.skip != 'true' }}
+    if: ${{ always() && !cancelled() && (github.event_name != 'push' || needs.checked.outputs.skip != 'true') }}
     runs-on: ubuntu-latest
     services:
       # The tests create and migrate their own "dossier_e2e" database here.
@@ -170,7 +170,7 @@ jobs:
   image:
     name: Publish container image
     needs: [checked, check, e2e]
-    if: ${{ !cancelled() && !failure() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/india-hourly-job-agent') }}
+    if: ${{ always() && !cancelled() && !failure() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/india-hourly-job-agent') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
