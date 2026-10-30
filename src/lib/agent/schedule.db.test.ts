@@ -71,7 +71,10 @@ describe("the monthly source-request budget and spacing", () => {
       "The agent reached its 180-search rolling 30-day budget. Try again in 4 hours.",
     );
     expect(runLimitProblem(oneEighty, new Date(now.getTime() + FOUR_HOURS + 1), { manual: false })).toBeNull();
-    expect(runLimitProblem(oneEighty.slice(0, 179), now, { manual: false })).toBeNull();
+    const oneSeventyNine = Array.from({ length: AGENT_MAX_RUNS_PER_MONTH - 1 }, (_, index) =>
+      run(new Date(now.getTime() - FOUR_HOURS - 1 - index * FOUR_HOURS).toISOString()),
+    );
+    expect(runLimitProblem(oneSeventyNine, now, { manual: false })).toBeNull();
   });
 });
 
