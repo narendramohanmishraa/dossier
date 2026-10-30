@@ -34,9 +34,9 @@ beforeEach(async () => {
 afterAll(() => prisma().$disconnect());
 
 describe("the Agent screen's data (E16-6)", () => {
-  it("splits the queue into drafts, scored postings and those below the minimum, best first", async () => {
+  it("shows drafts and scored postings only at or above 95, best first", async () => {
     const application = await prisma().application.create({ data: { origin: "AGENT", awaitingReview: true } });
-    await candidate("draft", 90, { status: "DRAFTED", applicationId: application.id });
+    await candidate("draft", 97, { status: "DRAFTED", applicationId: application.id });
     const good = await candidate("good", 95);
     await candidate("better", 99);
     await candidate("low", 94);
@@ -47,7 +47,7 @@ describe("the Agent screen's data (E16-6)", () => {
     const view = await loadAgentView(now);
     expect(view.drafts.map((entry) => entry.title)).toEqual(["Posting draft"]);
     expect(view.scored.map((entry) => entry.title)).toEqual(["Posting better", "Posting good"]);
-    expect(view.belowMinimum.map((entry) => entry.title)).toEqual(["Posting low"]);
+    expect(view.belowMinimum).toEqual([]);
     expect(view.scored[1]).toMatchObject({ facts: "Berlin · Remote", origin: "Posted 2 days ago · via LinkedIn on JSearch", draftJobId: job.id });
     expect(view).toMatchObject({
       search: "Data scientist · Berlin, 25 km · via JSearch",
