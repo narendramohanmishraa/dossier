@@ -20,13 +20,16 @@ export const runsInPastMonth = (runs: readonly AgentRun[], now: Date) =>
 /** Why no run may start now, in words, or null when one may. */
 export function runLimitProblem(runs: readonly AgentRun[], now: Date, _options: { manual: boolean }): string | null {
   const recent = runsInPastMonth(runs, now);
+  const last = runs[0];
+  const intervalReadyAt = last ? Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS : now.getTime();
   if (recent.length >= AGENT_MAX_RUNS_PER_MONTH) {
     const oldest = Math.min(...recent.map((run) => Date.parse(run.at)));
-    return `The agent reached its ${AGENT_MAX_RUNS_PER_MONTH}-search rolling 30-day budget. ${waitText(oldest + MONTH_MS - now.getTime())}`;
+    const budgetReadyAt = oldest + MONTH_MS;
+    const availableAt = Math.max(budgetReadyAt, intervalReadyAt);
+    return `The agent reached its ${AGENT_MAX_RUNS_PER_MONTH}-search rolling 30-day budget. ${waitText(availableAt - now.getTime())}`;
   }
-  const last = runs[0];
   if (last) {
-    const wait = Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS - now.getTime();
+    const wait = intervalReadyAt - now.getTime();
     if (wait > 0) return `The agent runs once every four hours. Try again in ${waitText(wait).replace(/^Try again in /, "")}`;
   }
   return null;
