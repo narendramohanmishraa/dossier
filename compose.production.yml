@@ -18,7 +18,7 @@ services:
       POSTGRES_DB: dossier
     volumes:
       # Postgres 18+ keeps data in a versioned subdirectory, so mount the parent.
-      - dossier-db-data:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dossier -d dossier"]
       interval: 5s
@@ -63,7 +63,7 @@ services:
     ports:
       - "127.0.0.1:${DOSSIER_PORT:-3000}:3000"
     volumes:
-      - dossier-data:/data
+      - data:/data
     # Room for Chromium, which prints the PDFs.
     mem_limit: 1g
     # Lets http://host.docker.internal reach Ollama (:11434) or LM Studio
@@ -81,6 +81,6 @@ services:
       - ollama:/root/.ollama
 
 volumes:
-  dossier-db-data:
-  dossier-data:
+  pgdata:
+  data:
   ollama:
