@@ -42,6 +42,11 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const params = await searchParams;
   const section = settingsSectionFromParam(params.section);
   const settings = await loadSettings();
+  // One-time upgrade for existing installs: auto-drafting is enabled as requested.
+  // The setting remains user-controllable after this migration has been recorded.
+  if (!settings.agentAutoDraftConfigured) {
+    await saveSettings({ agentAutoDraft: true, agentAutoDraftConfigured: true });
+  }
 
   return (
     <SettingsScreen section={section}>
@@ -61,7 +66,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             minScore: Math.max(95, settings.agentMinScore),
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
-            autoDraft: settings.agentEnabled ? true : settings.agentAutoDraft,
+            autoDraft: settings.agentAutoDraftConfigured ? settings.agentAutoDraft : true,
           }}
           source={(await loadJobSearchConfig()).source}
           aiReady={await isAiConfigured()}
