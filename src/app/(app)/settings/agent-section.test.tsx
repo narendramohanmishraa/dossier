@@ -76,7 +76,7 @@ describe("Settings → Job agent (E16-7)", () => {
 
   it("explains the limits in plain words", () => {
     open();
-    expect(screen.getByText(/^One search an hour, and at most 24 in any rolling 24 hours\. Each run scores up to 15 postings\./)).toBeInTheDocument();
+    expect(screen.getByText(/^One source search every four hours, capped at 180 searches in any rolling 30 days\. Each run scores up to 15 postings\./)).toBeInTheDocument();
   });
 
   it("points to the source or AI provider while one isn't set up", () => {
