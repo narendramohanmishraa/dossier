@@ -49,8 +49,8 @@ const view: AgentView = {
   lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },
   nextRun: "Wed 21 Oct, 07:00",
   runJobId: null,
-  drafts: [card("d1", 91, { applicationId: "app-1" })],
-  scored: [card("s1", 84, { redFlags: ["German required"], error: "The draft couldn't be prepared. Try again." }), card("s2", 72)],
+  drafts: [card("d1", 99, { applicationId: "app-1" })],
+  scored: [card("s1", 98, { redFlags: ["German required"], error: "Draft generation failed." }), card("s2", 96)],
   belowMinimum: [card("b1", 40)],
 };
 const open = (changes: Partial<AgentView> = {}) => render(<AgentScreen view={{ ...view, ...changes }} />);
@@ -71,7 +71,7 @@ describe("AgentScreen (E16-6)", () => {
     open();
     const drafts = screen.getByRole("region", { name: "Drafts to review" });
     expect(within(drafts).getByRole("heading", { level: 3, name: "Posting d1" })).toBeInTheDocument();
-    expect(within(drafts).getByRole("img", { name: "Score 91 of 100" })).toBeInTheDocument();
+    expect(within(drafts).getByRole("img", { name: "Score 99 of 100" })).toBeInTheDocument();
     expect(within(drafts).getByRole("link", { name: "Review draft" })).toHaveAttribute("href", "/applications/app-1");
     await user.click(within(drafts).getByRole("button", { name: "Approve" }));
     expect(approveAgentDraft).toHaveBeenCalledWith({ candidateId: "d1" });
@@ -103,7 +103,7 @@ describe("AgentScreen (E16-6)", () => {
   });
 
   it("labels Adzuna's postings with a link to Adzuna, as its terms ask", () => {
-    open({ scored: [card("s1", 84, { source: "ADZUNA", url: "https://www.adzuna.nl/land/ad/1" }), card("s2", 72)] });
+    open({ scored: [card("s1", 98, { source: "ADZUNA", url: "https://www.adzuna.nl/land/ad/1" }), card("s2", 96)] });
     const scored = screen.getByRole("region", { name: "Scored postings" });
     expect(within(scored).getByRole("link", { name: "Jobs by Adzuna (opens in a new tab)" })).toHaveAttribute("href", "https://www.adzuna.nl");
   });
