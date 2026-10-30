@@ -71,7 +71,7 @@ test("finds ultra-close India roles, drafts automatically and never submits appl
   await page.reload();
   await page.getByRole("button", { name: "Run now" }).click();
   await expect(page.getByText("No new postings this time.").first()).toBeVisible({ timeout: 30_000 });
-  expect(await fakeJobSearches()).toBe(searches + 2);
+  expect(await fakeJobSearches()).toBe(searches + 1); // Dossier serves the repeated query from its 30-minute cache
 
   // Manual scans share the four-hour gap with scheduled scans.
   const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
