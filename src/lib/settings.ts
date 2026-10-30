@@ -163,7 +163,7 @@ export const settingsSchema = z.object({
   /** Legacy daily-schedule preference retained for existing installations. */
   agentHour: z.coerce.number().int().min(0).max(23).catch(7),
   /** Postings scored below this stay out of the queue. */
-  agentMinScore: z.coerce.number().int().min(0).max(100).catch(90),
+  agentMinScore: z.coerce.number().int().min(0).max(100).catch(95),
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
