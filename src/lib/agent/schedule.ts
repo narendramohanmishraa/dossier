@@ -18,7 +18,7 @@ import { AGENT_MAX_RUNS_PER_MONTH, AGENT_SCAN_INTERVAL_MS, runLimitProblem, runs
 const CHECK_MS = 60 * 1000;
 
 /**
- * Whether an hourly run is due. The legacy hour/time-zone parameters remain
+ * Whether a four-hour scan is due. The legacy hour/time-zone parameters remain
  * accepted so existing callers and old settings do not break.
  */
 export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, runs: readonly AgentRun[]): boolean {
@@ -38,7 +38,7 @@ export function nextAgentRun(now: Date, _hour: number, _timeZone: string, runs: 
   return new Date(due > now.getTime() ? due : Math.ceil(now.getTime() / CHECK_MS) * CHECK_MS);
 }
 
-/** Starts the next hourly run when the agent is on and no scan is in flight. */
+/** Starts the next four-hour scan when the agent is on and no scan is in flight. */
 export async function startDueRun(now = new Date()): Promise<string | null> {
   const settings = await loadSettings();
   if (!settings.agentEnabled) return null;
