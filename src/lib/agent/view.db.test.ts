@@ -37,9 +37,9 @@ describe("the Agent screen's data (E16-6)", () => {
   it("splits the queue into drafts, scored postings and those below the minimum, best first", async () => {
     const application = await prisma().application.create({ data: { origin: "AGENT", awaitingReview: true } });
     await candidate("draft", 90, { status: "DRAFTED", applicationId: application.id });
-    const good = await candidate("good", 75);
-    await candidate("better", 88);
-    await candidate("low", 30);
+    const good = await candidate("good", 95);
+    await candidate("better", 99);
+    await candidate("low", 94);
     await candidate("gone", 95, { status: "DISMISSED" });
     await candidate("kept", 95, { status: "APPROVED" });
     const job = await prisma().job.create({ data: { type: "agent-draft", key: `agent-candidate:${good.id}`, input: { candidateId: good.id } } });
@@ -54,17 +54,17 @@ describe("the Agent screen's data (E16-6)", () => {
       setupProblem: null,
       limitReached: false,
       lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },
-      nextRun: "Tue 20 Oct, 12:01",
+      nextRun: "Tue 20 Oct, 10:01",
     });
     // The badge: scored at or above the minimum, and drafts.
     expect(await countAgentQueue()).toBe(3);
   });
 
-  it("says what is missing, and when the rolling hourly run quota is used up", async () => {
+  it("says what is missing, and when the rolling 30-day budget is used up", async () => {
     await saveSettings({
       agentEnabled: false,
       agentQuery: { keywords: "", place: "", country: "", radiusKm: 25, remoteOnly: false, postedWithin: "any" },
-      agentRuns: Array.from({ length: 24 }, (_, index) => ({ at: new Date(now.getTime() - index * 60 * 60 * 1000).toISOString(), manual: true, message: null })),
+      agentRuns: Array.from({ length: 180 }, (_, index) => ({ at: new Date(now.getTime() - index * 4 * 60 * 60 * 1000).toISOString(), manual: true, message: null })),
     });
     expect(await loadAgentView(now)).toMatchObject({
       enabled: false,
