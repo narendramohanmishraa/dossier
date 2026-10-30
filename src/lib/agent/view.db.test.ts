@@ -54,17 +54,17 @@ describe("the Agent screen's data (E16-6)", () => {
       setupProblem: null,
       limitReached: false,
       lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },
-      nextRun: "Wed 21 Oct, 07:00",
+      nextRun: "Tue 20 Oct, 12:01",
     });
     // The badge: scored at or above the minimum, and drafts.
     expect(await countAgentQueue()).toBe(3);
   });
 
-  it("says what's missing, and when the day's runs are used up", async () => {
+  it("says what is missing, and when the rolling hourly run quota is used up", async () => {
     await saveSettings({
       agentEnabled: false,
       agentQuery: { keywords: "", place: "", country: "", radiusKm: 25, remoteOnly: false, postedWithin: "any" },
-      agentRuns: ["09:30", "08:00", "06:00"].map((time) => ({ at: `2026-10-20T${time}:00Z`, manual: true, message: null })),
+      agentRuns: Array.from({ length: 24 }, (_, index) => ({ at: new Date(now.getTime() - index * 60 * 60 * 1000).toISOString(), manual: true, message: null })),
     });
     expect(await loadAgentView(now)).toMatchObject({
       enabled: false,
