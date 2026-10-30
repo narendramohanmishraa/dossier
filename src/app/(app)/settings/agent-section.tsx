@@ -25,7 +25,7 @@ export type AgentSettings = {
   autoDraft: boolean;
 };
 
-const MIN_SCORES = [50, 55, 60, 65, 70, 75, 80, 85, 90];
+const MIN_SCORES = [95, 96, 97, 98, 99, 100];
 const SCORE_COUNTS = Array.from({ length: 30 }, (_, index) => index + 1);
 const DRAFT_COUNTS = Array.from({ length: 11 }, (_, index) => index);
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
@@ -73,7 +73,7 @@ export function AgentSection({
       setErrors(problems);
       if (problems.keywords || problems.country) return;
       // With it, so a search started from Find jobs is saved too.
-      return change({ enabled: true, query: settings.query });
+      return change({ enabled: true, query: settings.query, minScore: Math.max(95, settings.minScore), autoDraft: true });
     }
     change({ enabled: false });
   };
@@ -81,7 +81,7 @@ export function AgentSection({
   return (
     <>
       <SettingsSectionIntro title="Job agent">
-        Every hour it searches for new postings, scores them against your profile, and keeps the best on the Agent screen. It never sends or applies.
+        Every four hours it searches across India, keeps only source-backed target-role listings, and scores them against your profile. Only 95/100+ matches enter the review queue. It never submits applications.
       </SettingsSectionIntro>
 
       {source === "ARBEITSAGENTUR" ? (
@@ -106,7 +106,7 @@ export function AgentSection({
       <Card padding="none" className="px-7 py-4">
         <Toggle
           label="Run the job agent"
-          description={settings.enabled ? "On. It searches once an hour. You can also run it manually when the hourly limit allows." : "Off. Nothing is searched or scored until it is on."}
+          description={settings.enabled ? "On. One source search every four hours, with automatic resume and cover-letter drafts for 95+ matches." : "Off. Nothing is searched or scored until it is on."}
           checked={settings.enabled}
           onCheckedChange={turnOn}
         />
