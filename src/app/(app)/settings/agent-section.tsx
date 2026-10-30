@@ -19,23 +19,20 @@ import { SettingsSectionIntro } from "./settings-screen";
 export type AgentSettings = {
   enabled: boolean;
   query: SearchQuery;
-  hour: number;
   minScore: number;
   maxScores: number;
   maxDrafts: number;
   autoDraft: boolean;
 };
 
-const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const MIN_SCORES = [50, 55, 60, 65, 70, 75, 80, 85, 90];
 const SCORE_COUNTS = Array.from({ length: 30 }, (_, index) => index + 1);
 const DRAFT_COUNTS = Array.from({ length: 11 }, (_, index) => index);
-const clock = (hour: number) => `${String(hour).padStart(2, "0")}:00`;
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /**
- * Settings → Job agent (E16-7): whether it runs, the one search it runs,
- * when, and how much a run may do. Each change saves at once; the search
+ * Settings → Job agent (E16-7): whether it runs, the search it runs,
+ * and how much a run may do. Each change saves at once; the search
  * once typing pauses.
  */
 export function AgentSection({
@@ -43,15 +40,12 @@ export function AgentSection({
   source,
   aiReady,
   countries,
-  timeZone,
 }: {
   initial: AgentSettings;
   /** The source in Settings → Job search; null while job search is off. */
   source: JobSource | null;
   aiReady: boolean;
   countries: readonly Country[];
-  /** The user's time zone, which the hour is in. */
-  timeZone: string;
 }) {
   const track = useTrackSave();
   const [settings, setSettings] = useState(initial);
@@ -87,7 +81,7 @@ export function AgentSection({
   return (
     <>
       <SettingsSectionIntro title="Job agent">
-        Once a day it runs one search, scores the new postings against your profile, and keeps the best on the Agent screen. It never sends or applies.
+        Every hour it searches for new postings, scores them against your profile, and keeps the best on the Agent screen. It never sends or applies.
       </SettingsSectionIntro>
 
       {source === "ARBEITSAGENTUR" ? (
@@ -112,11 +106,7 @@ export function AgentSection({
       <Card padding="none" className="px-7 py-4">
         <Toggle
           label="Run the job agent"
-          description={
-            settings.enabled
-              ? `On. It runs once a day after ${clock(settings.hour)} your time (${timeZone}), and you can run it now and then on the Agent screen.`
-              : "Off. Nothing is searched or scored until it's on."
-          }
+          description={settings.enabled ? "On. It searches once an hour. You can also run it manually when the hourly limit allows." : "Off. Nothing is searched or scored until it is on."}
           checked={settings.enabled}
           onCheckedChange={turnOn}
         />
@@ -133,6 +123,7 @@ export function AgentSection({
             , through the source in Settings → Job search. Postings you saved, dismissed or applied for there are left out.
           </p>
         </div>
+        <p className="text-meta text-muted">The India-wide search includes remote opportunities and roles listed in Delhi, Gurugram (Gurgaon) and Noida. Results depend on the selected job source.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
@@ -142,13 +133,6 @@ export function AgentSection({
       </Card>
 
       <Card padding="none" className="grid gap-x-[18px] gap-y-5 px-7 py-[26px] sm:grid-cols-2">
-        <Select label="Runs after" hint={`Your time (${timeZone})`} value={String(settings.hour)} onChange={(event) => change({ hour: Number(event.target.value) })}>
-          {HOURS.map((hour) => (
-            <option key={hour} value={hour}>
-              {clock(hour)}
-            </option>
-          ))}
-        </Select>
         <Select
           label="Minimum score"
           hint="Postings scored lower stay out of the queue."
@@ -195,7 +179,7 @@ export function AgentSection({
       </Card>
 
       <p className="text-meta text-muted">
-        One search a day, and at most three in any 24 hours. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
+        One search an hour, and at most 24 in any rolling 24 hours. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
         {settings.autoDraft ? ` and prepares up to ${plural(settings.maxDrafts, "draft", "drafts")}` : ""}. Scoring and drafts go to your AI provider with your profile, as a new application does; the job source only gets the search.
       </p>
     </>
