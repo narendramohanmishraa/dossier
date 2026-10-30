@@ -51,7 +51,7 @@ export type AgentView = {
   setupProblem: string | null;
   /** Which settings section fixes it. */
   setupSection: "agent" | "ai" | "jobs" | null;
-  /** The daily limit is used up. */
+  /** The rolling 24-hour scan limit is used up. */
   limitReached: boolean;
   lastRun: { at: string; message: string | null } | null;
   /** In the user's zone; null while the agent is off. */
