@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-
 import { loadProfile } from "@/lib/profile-data";
 import { route } from "@/lib/route";
 
