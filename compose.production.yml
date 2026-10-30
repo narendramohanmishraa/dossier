@@ -71,6 +71,25 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Optional automatic HTTPS reverse proxy for a VPS. Enable with COMPOSE_PROFILES=https
+  # and set DOSSIER_DOMAIN plus DOSSIER_PUBLIC_URL in production.env.
+  caddy:
+    profiles: [https]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOSSIER_DOMAIN: ${DOSSIER_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
   # A local model, with COMPOSE_PROFILES=ai in .env: `docker compose up -d`,
   # then pull one (see "Choosing an AI provider" in the wiki). Dossier reaches it at http://ollama:11434.
   ollama:
@@ -84,3 +103,5 @@ volumes:
   pgdata:
   data:
   ollama:
+  caddy-data:
+  caddy-config:
