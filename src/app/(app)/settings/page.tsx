@@ -43,9 +43,11 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const section = settingsSectionFromParam(params.section);
   const settings = await loadSettings();
   // One-time upgrade for existing installs: auto-drafting is enabled as requested.
-  // The setting remains user-controllable after this migration has been recorded.
+  // Turn automatic document drafting on once for existing installations.
+  // Preserve any search the user has already configured; the setting remains
+  // user-controllable after this migration has been recorded.
   if (!settings.agentAutoDraftConfigured) {
-    await saveSettings({ agentAutoDraft: true, agentAutoDraftConfigured: true, agentQuery: DEFAULT_AGENT_QUERY, agentMinScore: 95 });
+    await saveSettings({ agentAutoDraft: true, agentAutoDraftConfigured: true });
   }
 
   return (
@@ -62,7 +64,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           initial={{
             enabled: settings.agentEnabled,
             // Empty legacy settings receive the India-wide leadership and FinTech search.
-            query: !settings.agentAutoDraftConfigured || !settings.agentQuery.keywords.trim() ? DEFAULT_AGENT_QUERY : settings.agentQuery,
+            query: settings.agentQuery.keywords.trim() ? settings.agentQuery : DEFAULT_AGENT_QUERY,
             minScore: Math.max(95, settings.agentMinScore),
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
