@@ -1,0 +1,19 @@
+name: Actions startup smoke test
+
+on:
+  push:
+    branches: [feat/india-hourly-job-agent]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify runner startup
+        run: |
+          echo "GitHub Actions runner started successfully."
+          echo "Branch: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
