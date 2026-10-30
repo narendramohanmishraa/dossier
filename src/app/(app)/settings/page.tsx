@@ -45,7 +45,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   // One-time upgrade for existing installs: auto-drafting is enabled as requested.
   // The setting remains user-controllable after this migration has been recorded.
   if (!settings.agentAutoDraftConfigured) {
-    await saveSettings({ agentAutoDraft: true, agentAutoDraftConfigured: true });
+    await saveSettings({ agentAutoDraft: true, agentAutoDraftConfigured: true, agentQuery: DEFAULT_AGENT_QUERY, agentMinScore: 95 });
   }
 
   return (
