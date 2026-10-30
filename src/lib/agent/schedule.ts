@@ -26,10 +26,15 @@ export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, run
   return !last || now.getTime() - Date.parse(last.at) >= AGENT_SCAN_INTERVAL_MS;
 }
 
-/** The next run time; overdue checks are rounded to the next scheduler tick. */
-export function nextAgentRun(now: Date, _hour: number, _timeZone: string, runs: readonly { at: string }[]): Date {
+/** The next run, or the first time a slot leaves the rolling 30-day budget. */
+export function nextAgentRun(now: Date, _hour: number, _timeZone: string, runs: readonly AgentRun[]): Date {
+  const recent = runsInPastMonth(runs, now);
+  if (recent.length >= AGENT_MAX_RUNS_PER_MONTH) {
+    const oldest = Math.min(...recent.map((run) => Date.parse(run.at)));
+    return new Date(oldest + 30 * 24 * 60 * 60 * 1000);
+  }
   const last = runs[0];
-  const due = last ? Date.parse(last.at) + AGENT_MANUAL_INTERVAL_MS : now.getTime();
+  const due = last ? Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS : now.getTime();
   return new Date(due > now.getTime() ? due : Math.ceil(now.getTime() / CHECK_MS) * CHECK_MS);
 }
 
