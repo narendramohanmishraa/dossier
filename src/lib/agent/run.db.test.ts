@@ -64,7 +64,7 @@ vi.mock("@/lib/ai", async (importOriginal) => ({
         const { title } = JSON.parse(call.messages[0].content.split("The posting's facts:\n")[1].split("\n\nThe posting:")[0]) as { title: string };
         fake.onScore(title);
         if (title === fake.failOn) return "not json at all";
-        return { score: /senior/i.test(title) ? 90 : /designer/i.test(title) ? 75 : 40, reasons: [`Fits ${title}.`], redFlags: [] };
+        return { score: /Head of IT/i.test(title) ? 99 : /IT Delivery Manager/i.test(title) ? 97 : 80, reasons: [`Fits ${title}.`], redFlags: [] };
       },
     }),
 }));
@@ -85,15 +85,15 @@ const posting = (id: string, title: string, posted: string, extra: Partial<Found
   postedAt: posted,
   url: `https://jobs.example/${id}?utm_source=x`,
   via: "LinkedIn",
-  description: `${title} at Company ${id}.`,
+  description: `${title} at Company ${id}. This is a full-time technology leadership role covering enterprise systems, digital transformation, stakeholder delivery, team leadership and business outcomes. Candidates will own strategic initiatives and work closely with senior management.`,
   complete: false,
   ...extra,
 });
 const page = [
-  posting("a", "Senior Product Designer", "2026-10-19T00:00:00Z"),
-  posting("b", "Product Designer", "2026-10-18T00:00:00Z"),
+  posting("a", "Head of IT", "2026-10-19T00:00:00Z"),
+  posting("b", "IT Delivery Manager", "2026-10-18T00:00:00Z"),
   // No link: its dedupe key is company, title and place.
-  posting("c", "Office Manager", "2026-10-17T00:00:00Z", { url: "" }),
+  posting("c", "CTO", "2026-10-17T00:00:00Z", { url: "" }),
 ];
 
 const context = (abort?: AbortController): JobContext & { steps: string[] } => {
@@ -109,22 +109,26 @@ beforeEach(async () => {
 afterAll(() => prisma().$disconnect());
 
 describe("the India agent search scope", () => {
-  it("makes four targeted queries for remote India, Delhi, Gurugram and Noida", () => {
-    expect(agentSearchQueries(DEFAULT_AGENT_QUERY)).toEqual([
-      { ...DEFAULT_AGENT_QUERY, place: "", remoteOnly: true },
-      { ...DEFAULT_AGENT_QUERY, place: "Delhi", remoteOnly: false },
-      { ...DEFAULT_AGENT_QUERY, place: "Gurugram", remoteOnly: false },
-      { ...DEFAULT_AGENT_QUERY, place: "Noida", remoteOnly: false },
-    ]);
+  it("uses a single India-wide source query to protect the 200/month provider allowance", () => {
+    expect(agentSearchQueries(DEFAULT_AGENT_QUERY)).toEqual([DEFAULT_AGENT_QUERY]);
     expect(agentSearchQueries(query)).toEqual([query]);
   });
 
-  it("combines the four results and deduplicates repeated postings", async () => {
+  it("makes one source request and keeps only qualified target-role listings", async () => {
     await saveSettings({ agentQuery: DEFAULT_AGENT_QUERY });
     const result = await runAgentScan({ manual: false }, context(), now);
-    expect(fake.searches).toBe(4);
-    expect(result).toMatchObject({ found: 12, fresh: 3, scored: 3, skipped: 9 });
+    expect(fake.searches).toBe(1);
+    expect(result).toMatchObject({ found: 3, fresh: 3, scored: 3, skipped: 0 });
     expect(await prisma().agentCandidate.count()).toBe(3);
+  });
+
+  it("rejects unrelated roles, anonymous employers, weak descriptions and non-HTTPS application links", async () => {
+    const { isQualifiedAgentPosting } = await import("./run");
+    expect(isQualifiedAgentPosting(posting("x", "Office Manager", "2026-10-19T00:00:00Z"))).toBe(false);
+    expect(isQualifiedAgentPosting(posting("x2", "Head of IT", "2026-10-19T00:00:00Z", { company: "" }))).toBe(false);
+    expect(isQualifiedAgentPosting(posting("x3", "CTO", "2026-10-19T00:00:00Z", { description: "Short description." }))).toBe(false);
+    expect(isQualifiedAgentPosting(posting("x4", "AVP IT", "2026-10-19T00:00:00Z", { url: "http://jobs.example/x" }))).toBe(false);
+    expect(isQualifiedAgentPosting(page[0])).toBe(true);
   });
 });
 
@@ -137,13 +141,13 @@ describe("runAgentScan (E16-3)", () => {
     expect(result).toEqual({ found: 3, fresh: 3, scored: 3, drafted: 0, skipped: 0, message: "2 new postings are waiting for a look." });
     const candidates = await prisma().agentCandidate.findMany({ orderBy: { score: "desc" } });
     expect(candidates.map((candidate) => [candidate.externalId, candidate.score, candidate.status])).toEqual([
-      ["a", 90, "SCORED"],
-      ["b", 75, "SCORED"],
-      ["c", 40, "SCORED"],
+      ["a", 99, "SCORED"],
+      ["b", 97, "SCORED"],
+      ["c", 80, "SCORED"],
     ]);
-    expect(candidates[0]).toMatchObject({ title: "Senior Product Designer", reasons: ["Fits Senior Product Designer."], dedupeKey: agentDedupeKey(page[0]) });
+    expect(candidates[0]).toMatchObject({ title: "Head of IT", reasons: ["Fits Head of IT."], dedupeKey: agentDedupeKey(page[0]) });
     // Find jobs shows the scores too (#208).
-    expect((await prisma().postingScore.findMany({ orderBy: { score: "desc" } })).map((row) => [row.externalId, row.score])).toEqual([["a", 90], ["b", 75], ["c", 40]]);
+    expect((await prisma().postingScore.findMany({ orderBy: { score: "desc" } })).map((row) => [row.externalId, row.score])).toEqual([["a", 99], ["b", 97], ["c", 80]]);
     // The run is on record, with how it ended.
     expect((await loadSettings()).agentRuns).toEqual([{ at: now.toISOString(), manual: false, message: "2 new postings are waiting for a look." }]);
   });
@@ -153,22 +157,22 @@ describe("runAgentScan (E16-3)", () => {
     const scoredTitles: string[] = [];
     fake.onScore = (title) => scoredTitles.push(title);
     const result = await runAgentScan({ manual: false }, context(), now);
-    expect(scoredTitles).toEqual(["Senior Product Designer", "Product Designer"]);
+    expect(scoredTitles).toEqual(["Head of IT", "IT Delivery Manager"]);
     expect(result).toMatchObject({ fresh: 3, scored: 2 });
   });
 
   it("never brings back what it has seen, from another run or another source", async () => {
     await runAgentScan({ manual: false }, context(), now);
-    const again = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 2 * hour));
+    const again = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 4 * hour));
     expect(again).toEqual({ found: 3, fresh: 0, scored: 0, drafted: 0, skipped: 3, message: "No new postings this time." });
 
     // The same jobs from Adzuna: one by its link, one by company, title and place.
     fake.postings = [
-      posting("az-1", "Senior Product Designer", "2026-10-19T00:00:00Z", { source: "ADZUNA", url: "https://jobs.example/a?utm_medium=y" }),
-      posting("az-2", "Office  Manager", "2026-10-18T00:00:00Z", { source: "ADZUNA", url: "", company: "COMPANY c" }),
-      posting("az-3", "Brand Designer", "2026-10-20T00:00:00Z", { source: "ADZUNA" }),
+      posting("az-1", "Head of IT", "2026-10-19T00:00:00Z", { source: "ADZUNA", url: "https://jobs.example/a?utm_medium=y" }),
+      posting("az-2", "CTO", "2026-10-18T00:00:00Z", { source: "ADZUNA", url: "", company: "COMPANY c" }),
+      posting("az-3", "IT Delivery Manager", "2026-10-20T00:00:00Z", { source: "ADZUNA" }),
     ];
-    const third = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 4 * hour));
+    const third = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 8 * hour));
     expect(third).toMatchObject({ found: 3, fresh: 1, scored: 1, skipped: 2 });
   });
 
@@ -204,25 +208,25 @@ describe("runAgentScan (E16-3)", () => {
     expect((await loadSettings()).agentRuns).toEqual([]);
   });
 
-  it("holds the hourly 24-run limit in its own record, whatever the task-data sweep deletes", async () => {
+  it("holds the rolling 180-search monthly limit even after task-data rows are swept", async () => {
     await saveSettings({ jobRetentionHours: 1 });
-    for (let hours = 0; hours < 24; hours += 1) {
+    for (let scan = 0; scan < 180; scan += 1) {
       // Each run Job row is deleted after retention; the separate run history keeps the quota accurate.
-      const at = new Date(now.getTime() + hours * hour);
+      const at = new Date(now.getTime() + scan * 4 * hour);
       await prisma().job.create({ data: { type: "agent-scan", key: "agent", status: "DONE", input: { manual: true }, finishedAt: at } });
       await runAgentScan({ manual: true }, context(), at);
       await sweepFinishedJobs(new Date(at.getTime() + 1.5 * hour));
     }
-    expect(fake.searches).toBe(24);
+    expect(fake.searches).toBe(180);
     expect(await prisma().job.count()).toBe(0);
 
-    const blocked = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 23.5 * hour));
-    expect(blocked.message).toBe("The agent has run 24 times in the past 24 hours, as many as it may. Try again in 30 minutes.");
-    expect(fake.searches).toBe(24);
+    const blocked = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 179 * 4 * hour + 3.5 * hour));
+    expect(blocked.message).toBe("The agent reached its 180-search rolling 30-day budget. Try again in 30 minutes.");
+    expect(fake.searches).toBe(180);
 
-    // Once the oldest run has left the rolling 24-hour window, another scan may start.
-    await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 24 * hour + 1));
-    expect(fake.searches).toBe(25);
+    // Once the oldest run leaves the rolling 30-day window, another scan may start.
+    await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 180 * 4 * hour + 1));
+    expect(fake.searches).toBe(181);
   });
 
   it("records the run before it asks the source, so a failing source still counts", async () => {
@@ -233,14 +237,14 @@ describe("runAgentScan (E16-3)", () => {
   });
 
   it("goes on when one score fails, and says what failed when none worked", async () => {
-    fake.failOn = "Product Designer";
+    fake.failOn = "IT Delivery Manager";
     const result = await runAgentScan({ manual: false }, context(), now);
     expect(result).toMatchObject({ scored: 2 });
     expect((await prisma().agentCandidate.findMany()).map((candidate) => candidate.externalId).sort()).toEqual(["a", "c"]);
 
     await prisma().agentCandidate.deleteMany();
     fake.postings = [page[1]];
-    const failed = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 2 * hour));
+    const failed = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 4 * hour));
     expect(failed).toMatchObject({ scored: 0, message: "The model's answer didn't come back in the expected shape. Try again." });
   });
 
@@ -260,7 +264,7 @@ describe("runAgentScan (E16-3)", () => {
 
     await prisma().agentCandidate.deleteMany();
     await saveSettings({ agentAutoDraft: true, agentMaxDrafts: 1 });
-    const result = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 2 * hour));
+    const result = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 4 * hour));
     expect(result).toMatchObject({ scored: 3, drafted: 1, message: "2 new postings are waiting for a look. Preparing a draft for the best one." });
     const best = await prisma().agentCandidate.findFirstOrThrow({ where: { externalId: "a" } });
     expect(startJob).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: "agent-draft" }), { candidateId: best.id }, { key: `agent-candidate:${best.id}` });
@@ -268,7 +272,7 @@ describe("runAgentScan (E16-3)", () => {
 
   it("says when nothing reached the minimum score", async () => {
     fake.postings = [page[2]];
-    expect((await runAgentScan({ manual: false }, context(), now)).message).toBe("Scored 1 new posting; none reached your minimum score of 75.");
+    expect((await runAgentScan({ manual: false }, context(), now)).message).toBe("Scored 1 new posting; none reached your minimum score of 95.");
     expect(demoProfile().basics.name).toBe("Jane Doe");
   });
 });
