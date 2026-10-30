@@ -34,7 +34,6 @@ export function AgentScreen({ view }: { view: AgentView }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [runJobId, setRunJobId] = useState(view.runJobId);
-  const [showBelow, setShowBelow] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<AgentCandidateView | null>(null);
 
@@ -86,7 +85,6 @@ export function AgentScreen({ view }: { view: AgentView }) {
 
   const drafts = view.drafts.filter((candidate) => !hidden.has(candidate.id));
   const scored = view.scored.filter((candidate) => !hidden.has(candidate.id));
-  const below = view.belowMinimum.filter((candidate) => !hidden.has(candidate.id));
   const empty = drafts.length === 0 && scored.length === 0;
 
   return (
@@ -174,22 +172,7 @@ export function AgentScreen({ view }: { view: AgentView }) {
               ))}
             </ul>
           )}
-          {below.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <button type="button" aria-expanded={showBelow} onClick={() => setShowBelow(!showBelow)} className="w-fit text-meta text-muted underline underline-offset-2 hover:text-ink">
-                {below.length} below your minimum score of {view.minScore} · {showBelow ? "Hide" : "Show"}
-              </button>
-              {showBelow && (
-                <ul className="flex flex-col gap-3">
-                  {below.map((candidate) => (
-                    <li key={candidate.id}>
-                      <ScoredCard candidate={candidate} onDismiss={() => dismiss(candidate)} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+
         </Section>
       </div>
 
