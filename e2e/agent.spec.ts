@@ -34,10 +34,9 @@ test("finds ultra-close India roles, drafts automatically and never submits appl
   await expect(scored.getByRole("heading", { level: 3 })).toHaveText(["IT Delivery Manager"]);
   await expect(card(page, "IT Delivery Manager").getByRole("img", { name: "Score 97 of 100" })).toBeVisible();
 
-  // CTO is relevant but not an ultra-close match, so it remains below 95.
+  // CTO is source-backed but scores below 95, so it is not surfaced at all.
   await expect(page.getByText("CTO")).toHaveCount(0);
-  await page.getByRole("button", { name: "1 below your minimum score of 95 · Show" }).click();
-  await expect(page.getByRole("heading", { level: 3, name: "CTO" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /below your minimum score/ })).toHaveCount(0);
 
   // The best 95+ match is drafted automatically and waits for a human review.
   const drafts = page.getByRole("region", { name: "Drafts to review" });
