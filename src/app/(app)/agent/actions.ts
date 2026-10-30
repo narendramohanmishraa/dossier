@@ -26,7 +26,7 @@ export const saveAgentSettings = action(
     enabled: z.boolean().optional(),
     query: searchQuerySchema.optional(),
     hour: z.number().int().min(0).max(23).optional(),
-    minScore: z.number().int().min(0).max(100).optional(),
+    minScore: z.number().int().min(95).max(100).optional(),
     maxScores: z.number().int().min(1).max(30).optional(),
     maxDrafts: z.number().int().min(0).max(10).optional(),
     autoDraft: z.boolean().optional(),
@@ -45,6 +45,7 @@ export const saveAgentSettings = action(
       agentMaxScores: changes.maxScores,
       agentMaxDrafts: changes.maxDrafts,
       agentAutoDraft: changes.autoDraft,
+      agentAutoDraftConfigured: changes.autoDraft === undefined ? undefined : true,
     });
     revalidatePath("/agent");
     return null;
@@ -52,8 +53,8 @@ export const saveAgentSettings = action(
 );
 
 /**
- * Run now (E16-4): one more run, at most once an hour after the previous
- * one and within the daily limit. A run already queued or running is
+ * Run now (E16-4): one more run, at most once every four hours and within
+ * the rolling 30-day source budget. A run already queued or running is
  * reused rather than started again.
  */
 export const runAgentNow = action(z.object({}), async () => {
