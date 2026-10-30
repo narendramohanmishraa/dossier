@@ -58,7 +58,6 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             enabled: settings.agentEnabled,
             // With no search of its own yet, it starts from the last one in Find jobs.
             query: settings.agentQuery.keywords.trim() ? settings.agentQuery : ((await loadSearch())?.query ?? settings.agentQuery),
-            hour: settings.agentHour,
             minScore: settings.agentMinScore,
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
@@ -67,7 +66,6 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           source={(await loadJobSearchConfig()).source}
           aiReady={await isAiConfigured()}
           countries={COUNTRIES}
-          timeZone={await lastKnownTimeZone()}
         />
       ) : section === "google" ? (
         <>
