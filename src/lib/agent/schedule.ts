@@ -8,9 +8,9 @@ import { loadSettings } from "@/lib/settings-data";
 
 import { AGENT_JOB_KEY, agentScanJob } from "./jobs";
 import { agentSetupProblem } from "./run";
-import { AGENT_MANUAL_INTERVAL_MS } from "./runs";
+import { AGENT_SCAN_INTERVAL_MS } from "./runs";
 
-// The agent checks every minute and starts a scan once an hour after the
+// The agent checks every minute and starts a scan once every four hours after the
 // previous run. This timer lives in the app process, so Dossier must run as a
 // single instance per database (the same constraint as its other schedulers).
 
@@ -22,7 +22,7 @@ const CHECK_MS = 60 * 1000;
  */
 export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, runs: readonly { at: string }[]): boolean {
   const last = runs[0];
-  return !last || now.getTime() - Date.parse(last.at) >= AGENT_MANUAL_INTERVAL_MS;
+  return !last || now.getTime() - Date.parse(last.at) >= AGENT_SCAN_INTERVAL_MS;
 }
 
 /** The next run time; overdue checks are rounded to the next scheduler tick. */
