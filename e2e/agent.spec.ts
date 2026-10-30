@@ -34,7 +34,7 @@ test("finds, scores, drafts and dismisses, and never brings a posting back", asy
   await expect(card(page, "Senior Product Designer, Payments").getByRole("img", { name: "Score 91 of 100" })).toBeVisible();
   // The one below the minimum score waits behind Show.
   await expect(page.getByText("UX Designer")).toHaveCount(0);
-  await page.getByRole("button", { name: "1 below your minimum score of 70 · Show" }).click();
+  await page.getByRole("button", { name: "1 below your minimum score of 75 · Show" }).click();
   await expect(page.getByRole("heading", { level: 3, name: "UX Designer" })).toBeVisible();
 
   // Prepare a draft: it waits for review, out of Applications.
