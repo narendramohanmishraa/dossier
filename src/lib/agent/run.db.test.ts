@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoProfile } from "@/lib/demo-profile";
-import type { FoundPosting, SearchQuery } from "@/lib/job-search/search";
+import { DEFAULT_AGENT_QUERY, type FoundPosting, type SearchQuery } from "@/lib/job-search/search";
 import type { JobContext } from "@/lib/jobs/runner";
 import { sweepFinishedJobs } from "@/lib/jobs/retention";
 import { saveSettings, loadSettings } from "@/lib/settings-data";
@@ -10,7 +10,7 @@ import { createTestClient, resetDatabase } from "@/test/db";
 import { MockProvider } from "../ai/providers/mock";
 
 import { agentDedupeKey } from "./candidates";
-import { runAgentScan } from "./run";
+import { agentSearchQueries, runAgentScan } from "./run";
 
 const db = vi.hoisted(() => ({ client: undefined as ReturnType<typeof createTestClient> | undefined }));
 vi.mock("@/lib/prisma", async () => {
@@ -107,6 +107,26 @@ beforeEach(async () => {
   await saveSettings({ agentEnabled: true, agentQuery: query });
 });
 afterAll(() => prisma().$disconnect());
+
+describe("the India agent search scope", () => {
+  it("makes four targeted queries for remote India, Delhi, Gurugram and Noida", () => {
+    expect(agentSearchQueries(DEFAULT_AGENT_QUERY)).toEqual([
+      { ...DEFAULT_AGENT_QUERY, place: "", remoteOnly: true },
+      { ...DEFAULT_AGENT_QUERY, place: "Delhi", remoteOnly: false },
+      { ...DEFAULT_AGENT_QUERY, place: "Gurugram", remoteOnly: false },
+      { ...DEFAULT_AGENT_QUERY, place: "Noida", remoteOnly: false },
+    ]);
+    expect(agentSearchQueries(query)).toEqual([query]);
+  });
+
+  it("combines the four results and deduplicates repeated postings", async () => {
+    await saveSettings({ agentQuery: DEFAULT_AGENT_QUERY });
+    const result = await runAgentScan({ manual: false }, context(), now);
+    expect(fake.searches).toBe(4);
+    expect(result).toMatchObject({ found: 12, fresh: 3, scored: 3, skipped: 9 });
+    expect(await prisma().agentCandidate.count()).toBe(3);
+  });
+});
 
 describe("runAgentScan (E16-3)", () => {
   it("searches once, scores the new postings and keeps them, below the minimum too", async () => {
