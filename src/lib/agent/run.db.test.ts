@@ -124,6 +124,8 @@ describe("the India agent search scope", () => {
   it("rejects unrelated roles, anonymous employers, weak descriptions and non-HTTPS application links", async () => {
     const { isQualifiedAgentPosting } = await import("./run");
     expect(isQualifiedAgentPosting(posting("x", "Office Manager", "2026-10-19T00:00:00Z"))).toBe(false);
+    expect(isQualifiedAgentPosting(posting("x5", "AVP Sales", "2026-10-19T00:00:00Z"))).toBe(false);
+    expect(isQualifiedAgentPosting(posting("x6", "AVP – IT", "2026-10-19T00:00:00Z"))).toBe(true);
     expect(isQualifiedAgentPosting(posting("x2", "Head of IT", "2026-10-19T00:00:00Z", { company: "" }))).toBe(false);
     expect(isQualifiedAgentPosting(posting("x3", "CTO", "2026-10-19T00:00:00Z", { description: "Short description." }))).toBe(false);
     expect(isQualifiedAgentPosting(posting("x4", "AVP IT", "2026-10-19T00:00:00Z", { url: "http://jobs.example/x" }))).toBe(false);
