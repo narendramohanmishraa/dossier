@@ -6,7 +6,8 @@
 #
 #   docker compose up -d
 #
-# Add COMPOSE_PROFILES=ai to .env to run Ollama for a local model as well.
+# Add COMPOSE_PROFILES=ai to .env to run Ollama for a local model.
+# For a VPS, add COMPOSE_PROFILES=https and DOSSIER_DOMAIN to enable Caddy HTTPS.
 
 services:
   db:
