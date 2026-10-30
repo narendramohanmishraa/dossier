@@ -244,7 +244,7 @@ The workflow publishes the `feat-india-hourly-job-agent` preview tag on successf
 
 The container is built by GitHub; it still needs an always-on host to run it. A container image in GHCR is not itself a running server.
 
-**Moving an existing local installation:** Docker volumes live on the machine where Docker runs; reusing the same volume names on a VPS creates new, empty volumes there. Before moving, use Dossier's **Settings → Data → Export** on the laptop and keep a separate database/data backup. Restore the export on the VPS after the new instance is running. Keep the existing `POSTGRES_PASSWORD` and `DOSSIER_SECRET` values during a move unless you deliberately perform the corresponding database-password and encryption-key rotation; changing `DOSSIER_SECRET` can make previously encrypted provider keys unreadable. Do not run a new empty production stack against an existing data directory before you have a verified backup.
+**Moving an existing local installation:** Docker volumes live on the machine where Docker runs; reusing the same volume names on a VPS creates new, empty volumes there. Before moving, use Dossier's **Settings → Data → Export** on the laptop and keep a separate database/data backup. Restore the export on the VPS after the new instance is running. Keep the existing `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` and `DOSSIER_SECRET` values during a same-host upgrade or data restore unless you deliberately migrate/rotate the corresponding database credentials and encryption key; changing `DOSSIER_SECRET` can make previously encrypted provider keys unreadable. Do not run a new empty production stack against an existing data directory before you have a verified backup.
 
 ## Documentation
 
