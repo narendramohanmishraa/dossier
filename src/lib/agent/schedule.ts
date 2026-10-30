@@ -5,6 +5,7 @@ import { findUnfinishedJobs, startJob } from "@/lib/jobs/runner";
 import { logServerError } from "@/lib/log";
 import { prisma } from "@/lib/prisma";
 import { loadSettings } from "@/lib/settings-data";
+import type { AgentRun } from "@/lib/settings";
 
 import { AGENT_JOB_KEY, agentScanJob } from "./jobs";
 import { agentSetupProblem } from "./run";
@@ -20,7 +21,7 @@ const CHECK_MS = 60 * 1000;
  * Whether an hourly run is due. The legacy hour/time-zone parameters remain
  * accepted so existing callers and old settings do not break.
  */
-export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, runs: readonly { at: string }[]): boolean {
+export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, runs: readonly AgentRun[]): boolean {
   const last = runs[0];
   return !last || now.getTime() - Date.parse(last.at) >= AGENT_SCAN_INTERVAL_MS;
 }
