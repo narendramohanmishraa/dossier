@@ -110,12 +110,12 @@ To put Dossier on a server, on your own domain with HTTPS, follow the [installat
 
 ### This fork's production image
 
-This repository's GitHub Actions workflow builds the Dockerfile's `production` target and publishes `ghcr.io/narendramohanmishraa/dossier:main` to GitHub Container Registry after the checks pass on a push to `main`. Merging the job-agent pull request to `main` is what triggers that image build; a draft PR does not publish the production image.
+This repository's GitHub Actions workflow builds the Dockerfile's `production` target and publishes `ghcr.io/narendramohanmishraa/dossier:feat-india-hourly-job-agent` after lint, type-check, coverage and E2E checks pass on the feature branch. After the PR is merged and CI passes on `main`, it publishes `ghcr.io/narendramohanmishraa/dossier:main`. A GitHub Actions run is required before either tag can be pulled.
 
 For a server that stays online while your laptop is off, use a VPS or other always-on Docker host. On that host:
 
 1. Copy `production.env.example` to `production.env` and replace every placeholder. Use a random hexadecimal `POSTGRES_PASSWORD` (for example, `openssl rand -hex 24`), generate `DOSSIER_SECRET` with `openssl rand -base64 48`, and create the Dossier login hash with the published image's `hash-password` command.
-2. Pull and start the production services:
+2. Pull and start the services. The supplied `production.env.example` targets the feature-branch preview image; after merging the PR, change `DOSSIER_IMAGE` to the `:main` tag if you prefer the stable main build:
 
    ```bash
    docker compose -f compose.production.yml --env-file production.env pull
