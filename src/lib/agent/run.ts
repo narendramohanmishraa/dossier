@@ -12,7 +12,7 @@ import { scorePosting } from "@/lib/ai/tasks";
 import { searchPostings } from "@/lib/job-search";
 import { credentialsFor, loadJobSearchConfig, requestContext } from "@/lib/job-search/config";
 import { JobSearchError } from "@/lib/job-search/errors";
-import { postingKey, postingText, type FoundPosting, type SearchQuery } from "@/lib/job-search/search";
+import { postingKey, postingText, safeLink, type FoundPosting, type SearchQuery } from "@/lib/job-search/search";
 import { startJob, type JobContext } from "@/lib/jobs/runner";
 import { logServerError } from "@/lib/log";
 import { saveScore } from "@/lib/posting-scores";
@@ -25,7 +25,7 @@ import { agentDedupeKey, candidateData } from "./candidates";
 import { agentDraftJob, draftJobKey } from "./draft";
 import { recordRunEnd, recordRunStart, runLimitProblem } from "./runs";
 
-// One run of the job agent (E16-3): one search, the postings seen before
+// One run of the job agent (E16-3): the configured searches, the postings seen before
 // dropped, and a score for the newest of the rest. It never sends anything.
 // Adapted from avinashbatchala's fork of Dossier.
 
@@ -47,6 +47,35 @@ const stopped = (message: string): AgentScanResult => ({ found: 0, fresh: 0, sco
 
 /** Whether a search is complete enough to run: keywords and a country. */
 export const agentQueryReady = (query: SearchQuery) => Boolean(query.keywords.trim() && query.country);
+
+/**
+ * One source request per scan: custom searches and the default India-wide search
+ * both remain a single query to keep the monthly provider budget predictable.
+ */
+export function agentSearchQueries(query: SearchQuery): SearchQuery[] {
+  // One broad India-wide source query keeps the default plan below 200/month.
+  return [query];
+}
+
+/**
+ * Keep only source-backed postings that look like one of the target roles.
+ * This proves the source supplied a company, description and HTTPS link; it
+ * does not prove the employer has not since closed the vacancy.
+ */
+export function isQualifiedAgentPosting(posting: FoundPosting): boolean {
+  const title = posting.title.trim();
+  const company = posting.company.trim();
+  const description = posting.description.trim();
+  const url = safeLink(posting.url);
+  if (!title || !company || description.length < 80 || !url || !url.startsWith("https://")) return false;
+
+  const seniorTechnologyRole =
+    /\b(head of (?:it|technology|information technology)|avp\s*[-–]?\s*(?:it|technology)|chief technology officer|cto|it delivery manager|delivery manager[ -]it|digital transformation (?:head|director|lead)|head of digital transformation)\b/i.test(title);
+  const fintechProductRole =
+    /\bproduct manager\b/i.test(title) &&
+    /fintech|financial technology|bfs[iy]|nbfc|banking|lending|digital lending|loan|payments|financial services/i.test([title, company, description].join(" "));
+  return seniorTechnologyRole || fintechProductRole;
+}
 
 /** Why the agent can't run at all, in words, or null when it's set up. */
 export async function agentSetupProblem(query: SearchQuery): Promise<string | null> {
@@ -90,7 +119,7 @@ export async function newPostings(postings: readonly FoundPosting[]): Promise<Fo
 const newestFirst = (a: FoundPosting, b: FoundPosting) => (b.postedAt ? Date.parse(b.postedAt) : 0) - (a.postedAt ? Date.parse(a.postedAt) : 0);
 
 /**
- * One run: the first page of results only (one source request), then a
+ * One run: one India-wide source page, then a
  * score for the newest new postings, up to agentMaxScores. Each is kept as a
  * candidate, so it doesn't come back; one below agentMinScore stays out of
  * the queue. With auto-draft on, the best of them get a draft each, up to
@@ -116,8 +145,12 @@ export async function runAgentScan({ manual }: { manual: boolean }, context: Job
   const source = config.source!;
   let postings: FoundPosting[];
   try {
-    // The first page only: the agent never asks for a second.
-    postings = (await searchPostings(source, credentialsFor(config, source), settings.agentQuery, null, requestContext(source))).postings;
+    // One first-page India-wide or custom search: at most six scheduled scans per day, capped at 180/month.
+    const credentials = credentialsFor(config, source);
+    const request = requestContext(source);
+    const [query] = agentSearchQueries(settings.agentQuery);
+    const page = await searchPostings(source, credentials, query, null, request);
+    postings = page.postings.filter(isQualifiedAgentPosting);
   } catch (error) {
     if (error instanceof JobSearchError) return finish(stopped(error.message));
     throw error;
@@ -157,7 +190,7 @@ export async function runAgentScan({ manual }: { manual: boolean }, context: Job
     }
   }
 
-  // Auto-draft (#197, off by default): the best of this run's, one job each.
+  // Auto-draft: the best ultra-close matches from this run, one job each.
   let drafted = 0;
   if (settings.agentAutoDraft && settings.agentMaxDrafts > 0 && !context.signal.aborted) {
     const best = await prisma.agentCandidate.findMany({

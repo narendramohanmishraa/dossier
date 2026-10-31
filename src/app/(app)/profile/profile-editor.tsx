@@ -77,6 +77,9 @@ export function ProfileEditor({ initial, section, order }: { initial: ProfileDat
             <Link href="/profile/import" className={buttonClassName("secondary")}>
               Import from a resume
             </Link>
+            <Link href="/api/profile/autofill" className={buttonClassName("secondary")}>
+              Download autofill profile
+            </Link>
             <Link href="/resume" className={buttonClassName("primary", "md", "hover:text-on-primary")}>
               See base resume →
             </Link>

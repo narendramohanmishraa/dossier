@@ -35,9 +35,10 @@ It's for one person on a small server: one password, your data in your own Postg
 - **Base resume:** twelve themes and a theme builder, previewed live and printed to PDF on the server. Duplicate themes, or share them as files.
 - **Find jobs:** search postings near your city, or anywhere you choose, through JSearch (LinkedIn, Indeed and more), Adzuna or FreeHire (company career pages). Save the good ones, dismiss the rest, score any of them against your profile, and start an application from a posting with one click.
 - **Startups:** startups that are hiring, from YC startups' job posts and Hacker News' monthly “Who is hiring?” thread, kept to the ones that hire where you live or remotely from your country and ranked against your profile, with the address each one publishes for applications. Dossier reads their sites politely and follows their robots.txt. Start an application to one with a click; you decide whom to write to.
-- **Job agent (optional):** once a day it runs one search for you, skips what you've seen, scores the new postings against your profile and keeps the best on the Agent screen, with its reasons. It can prepare tailored drafts too, which wait for your review. It never sends or applies.
+- **Job agent (optional):** the India default makes one source search every four hours, with a hard cap of 180 requests in any rolling 30 days (a 20-request reserve against a 200/month plan). It filters to the requested IT leadership and FinTech product titles, named employers, substantive descriptions and HTTPS application links. AI scoring then admits only 95/100+ matches to the review queue. Tailored resumes and cover letters are prepared automatically by default and wait for your review. It never sends or applies. Verify that the employer still has the vacancy open before applying; a source listing alone cannot guarantee that. The 180-request cap applies to the agent only; manual Find jobs searches can also consume your provider allowance.
 - **New application:** paste a posting; Dossier pulls out the details and requirements, matches them against your profile, and writes a tailored resume and cover letter in the tone you pick.
 - **Never invents experience:** drafts only use facts from your profile. What the posting asks for and your profile doesn't have is shown as a gap, not made up.
+- **Browser autofill (optional):** a Chrome/Edge extension imports a reduced profile export, previews standard fields on common ATS application pages (Greenhouse, Lever, Workday, Ashby, SmartRecruiters, iCIMS and Workable), and fills only the fields you select. It never answers legal, demographic or eligibility questions, uploads documents, or submits applications. See [Dossier Autofill](browser-extension/dossier-autofill/README.md).
 - **Refine:** ask for changes in a chat, edit or regenerate any part (every part of the cover letter too: sender, date, recipient, greeting and sign-off, written in the letter's language), undo AI changes or go back to any earlier version, keep private notes.
 - **Send:** an email to go with each application, to whoever the posting says to send it to, ready to copy or open in your mail app, with the resume and cover letter PDFs to attach. Edit, rewrite or refine it like the documents.
 - **Claude connector (optional):** use Dossier from Claude, on claude.ai, in the Desktop and mobile apps or in Claude's command-line app, on your own Claude plan. Claude can search for jobs, score them against your profile, read your profile and applications, and save the resume and cover letter it writes as a Draft, checked like Dossier's own. It never sends or deletes anything. Without an AI model of Dossier's own, **Write it with Claude** hands a posting to a new Claude chat. Turn it on in Settings → Claude connector (see [Connecting Claude](https://github.com/AienTech/dossier/wiki/Connecting-Claude)).
@@ -106,6 +107,39 @@ The first start downloads the image (about 1.7 GB) and sets up the database. Ope
 ## Self-hosting
 
 To put Dossier on a server, on your own domain with HTTPS, follow the [installation guide](https://github.com/AienTech/dossier/wiki#self-host-on-a-server): a plain Ubuntu server with Docker Compose and Caddy (or Node.js, without Docker), CapRover, Coolify or Dokploy. Give the server at least 2 vCPUs and 2 GB of memory (see [Performance and sizing](#performance-and-sizing)).
+
+### This fork's production image
+
+GitHub Actions builds the Dockerfile's production target and publishes `ghcr.io/narendramohanmishraa/dossier:feat-india-hourly-job-agent` only after lint, type-check, coverage tests and end-to-end tests pass on this feature branch. After the branch is merged and CI passes on `main`, it publishes `ghcr.io/narendramohanmishraa/dossier:main`. The registry stores the image; it does not run the application.
+
+For a server that stays online while your laptop is off, use a VPS or another always-on Docker host. The repository includes an optional Caddy service in `compose.production.yml`. To deploy:
+
+1. Create an Ubuntu/Linux VPS with Docker Engine and the Docker Compose plugin. Point a DNS A/AAAA record for your domain to the VPS and allow inbound TCP ports 80/443 (plus UDP 443 for HTTP/3).
+2. On the VPS, download the production Compose file, Caddy config and environment template from this branch:
+
+   ```bash
+   mkdir dossier-deploy && cd dossier-deploy
+   curl -fsSLO https://raw.githubusercontent.com/narendramohanmishraa/dossier/feat/india-hourly-job-agent/compose.production.yml
+   curl -fsSLO https://raw.githubusercontent.com/narendramohanmishraa/dossier/feat/india-hourly-job-agent/Caddyfile
+   curl -fsSLO https://raw.githubusercontent.com/narendramohanmishraa/dossier/feat/india-hourly-job-agent/production.env.example
+   cp production.env.example production.env
+   ```
+
+3. Edit `production.env`: set `DOSSIER_DOMAIN` and `DOSSIER_PUBLIC_URL=https://your-domain`, then replace every secret placeholder. Generate the PostgreSQL password with `openssl rand -hex 32`, `DOSSIER_SECRET` with `openssl rand -hex 48`, and create `DOSSIER_PASSWORD` using the published image's `hash-password` command. Keep the single quotes around the Argon2id hash. The template enables `COMPOSE_PROFILES=https`, which starts Caddy and obtains/renews HTTPS certificates automatically.
+4. Check the image tag exists in GitHub Packages. If the package is private, authenticate on the VPS using `docker login ghcr.io` and a GitHub token with `read:packages`; alternatively, set the GHCR package visibility to Public.
+5. Pull and start the services:
+
+   ```bash
+   docker compose --env-file production.env -f compose.production.yml pull
+   docker compose --env-file production.env -f compose.production.yml up -d
+   docker compose --env-file production.env -f compose.production.yml ps
+   ```
+
+Open `https://your-domain`. PostgreSQL and Dossier files persist in named Docker volumes. Do not run `docker compose down -v` on a live installation: it deletes those volumes. Set up backups outside the VPS and test restoration.
+
+After merging this PR, change `DOSSIER_IMAGE` in `production.env` from the preview tag to `ghcr.io/narendramohanmishraa/dossier:main`, then run the pull and `up -d` commands again. For an existing laptop installation, export your Dossier data and back it up before moving: Docker volumes on the laptop do not automatically transfer to the VPS.
+
+The container still requires an always-on VPS or hosting platform. Publishing an image to GitHub Container Registry does not create a running server.
 
 ## Documentation
 

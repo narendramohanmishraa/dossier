@@ -1,43 +1,45 @@
 # Dossier with Docker Compose (see the installation guide, https://github.com/AienTech/dossier/wiki). Save this
 # file as compose.yml in a folder of its own, put POSTGRES_PASSWORD,
 # DOSSIER_PASSWORD (a hash of your password, from `docker run --rm -it
-# ghcr.io/aientech/dossier hash-password`) and DOSSIER_SECRET in a .env file
+# ghcr.io/narendramohanmishraa/dossier:main hash-password`) and DOSSIER_SECRET in a .env file
 # next to it, then:
 #
 #   docker compose up -d
 #
-# Add COMPOSE_PROFILES=ai to .env to run Ollama for a local model as well.
+# Add COMPOSE_PROFILES=ai to .env to run Ollama for a local model.
+# For a VPS, add COMPOSE_PROFILES=https and DOSSIER_DOMAIN to enable Caddy HTTPS.
 
 services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dossier
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: dossier
+      POSTGRES_DB: ${POSTGRES_DB:-dossier}
     volumes:
       # Postgres 18+ keeps data in a versioned subdirectory, so mount the parent.
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dossier -d dossier"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   app:
-    image: ${DOSSIER_IMAGE:-ghcr.io/aientech/dossier:latest}
+    image: ${DOSSIER_IMAGE:-ghcr.io/narendramohanmishraa/dossier:main}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://dossier:${POSTGRES_PASSWORD}@db:5432/dossier
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-dossier}
       DOSSIER_PASSWORD: ${DOSSIER_PASSWORD:?Set DOSSIER_PASSWORD in .env to a hash from hash-password}
       DOSSIER_SECRET: ${DOSSIER_SECRET:?Set DOSSIER_SECRET in .env}
       DOSSIER_BACKUP_RETENTION_DAYS: ${DOSSIER_BACKUP_RETENTION_DAYS:-}
       # Your time zone, e.g. Europe/Berlin: nightly backups run at 03:00 in it.
-      TZ: ${TZ:-UTC}
+      TZ: ${TZ:-Asia/Kolkata}
       DOSSIER_AI_PROVIDER: ${DOSSIER_AI_PROVIDER:-}
       DOSSIER_AI_URL: ${DOSSIER_AI_URL:-}
       DOSSIER_AI_MODEL: ${DOSSIER_AI_MODEL:-}
@@ -70,6 +72,25 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Optional automatic HTTPS reverse proxy for a VPS. Enable with COMPOSE_PROFILES=https
+  # and set DOSSIER_DOMAIN plus DOSSIER_PUBLIC_URL in production.env.
+  caddy:
+    profiles: [https]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOSSIER_DOMAIN: ${DOSSIER_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
   # A local model, with COMPOSE_PROFILES=ai in .env: `docker compose up -d`,
   # then pull one (see "Choosing an AI provider" in the wiki). Dossier reaches it at http://ollama:11434.
   ollama:
@@ -83,3 +104,5 @@ volumes:
   pgdata:
   data:
   ollama:
+  caddy-data:
+  caddy-config:

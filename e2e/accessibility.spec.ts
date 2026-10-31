@@ -60,7 +60,7 @@ const SCREENS = [
 for (const path of SCREENS) {
   test(`axe: ${path}`, async ({ page }) => {
     await page.goto(path);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
     await expectAccessible(page);
   });
 }
@@ -78,7 +78,7 @@ test.describe("dark, with the sidebar collapsed", () => {
   for (const path of SCREENS) {
     test(`axe: ${path}`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
       await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
       await expectAccessible(page);
     });
@@ -180,7 +180,7 @@ test("axe: Find jobs with results, and its past searches (E14)", async ({ page }
   await page.goto("/jobs");
   await page.getByRole("search", { name: "Search postings" }).getByRole("button", { name: "Search" }).click();
   await expect(page.getByRole("list", { name: "Postings" })).toBeVisible();
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("list", { name: "Postings" }).getByRole("listitem").first()).toBeVisible();
   await expectAccessible(page);
 
   await page.goto("/jobs?view=history");

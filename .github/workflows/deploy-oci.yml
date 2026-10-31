@@ -1,0 +1,131 @@
+name: Deploy to Oracle Cloud
+
+on:
+  # Automatically deploy the exact main-branch image after the CI workflow
+  # has completed successfully and published it to GHCR.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  # Also allow an authorised operator to redeploy an already-published image.
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Published GHCR tag (main or a full commit SHA)"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dossier-oracle-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy and verify Dossier
+    if: >-
+      ${{ vars.DEPLOY_TO_OCI == 'true' &&
+        ((github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success') ||
+         github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ secrets.OCI_USER }}
+      OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+      OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
+      DOSSIER_DOMAIN: ${{ secrets.DOSSIER_DOMAIN }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DOSSIER_PASSWORD_HASH: ${{ secrets.DOSSIER_PASSWORD_HASH }}
+      DOSSIER_SECRET: ${{ secrets.DOSSIER_SECRET }}
+      IMAGE_TAG: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.image_tag }}
+
+    steps:
+      - name: Check deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in OCI_HOST OCI_USER OCI_SSH_PRIVATE_KEY OCI_KNOWN_HOSTS DOSSIER_DOMAIN POSTGRES_PASSWORD DOSSIER_PASSWORD_HASH DOSSIER_SECRET IMAGE_TAG; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required GitHub secret or workflow input: $name"
+              exit 1
+            fi
+          done
+          if [[ ! "$IMAGE_TAG" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+            echo "::error::IMAGE_TAG contains unsupported characters."
+            exit 1
+          fi
+          if [[ ! "$DOSSIER_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::DOSSIER_DOMAIN must be a DNS hostname."
+            exit 1
+          fi
+
+      - name: Check out deployment files
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" > "$HOME/.ssh/dossier_oci"
+          chmod 600 "$HOME/.ssh/dossier_oci"
+          printf '%s\n' "$OCI_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Create production environment file
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'COMPOSE_PROFILES=https\n'
+            printf 'DOSSIER_DOMAIN=%s\n' "$DOSSIER_DOMAIN"
+            printf 'DOSSIER_PUBLIC_URL=https://%s\n' "$DOSSIER_DOMAIN"
+            printf 'POSTGRES_USER=postgres\n'
+            printf 'POSTGRES_PASSWORD=%s\n' "$POSTGRES_PASSWORD"
+            printf 'POSTGRES_DB=dossier\n'
+            printf "DOSSIER_PASSWORD='%s'\n" "$DOSSIER_PASSWORD_HASH"
+            printf 'DOSSIER_SECRET=%s\n' "$DOSSIER_SECRET"
+            printf 'DOSSIER_IMAGE=ghcr.io/narendramohanmishraa/dossier:%s\n' "$IMAGE_TAG"
+            printf 'DOSSIER_PORT=3000\n'
+            printf 'TZ=Asia/Kolkata\n'
+            printf 'DOSSIER_JOBS_SOURCE=freehire\n'
+            printf 'DOSSIER_BACKUP_RETENTION_DAYS=14\n'
+            printf 'DOSSIER_TELEMETRY=off\n'
+          } > production.env
+          chmod 600 production.env
+
+      - name: Copy deployment files to Oracle VM
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH=(ssh -i "$HOME/.ssh/dossier_oci" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes)
+          SCP=(scp -i "$HOME/.ssh/dossier_oci" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes)
+          "${SSH[@]}" "$OCI_USER@$OCI_HOST" "sudo install -d -m 0750 -o '$OCI_USER' -g '$OCI_USER' /opt/dossier"
+          "${SCP[@]}" compose.production.yml Caddyfile production.env "$OCI_USER@$OCI_HOST:/opt/dossier/"
+
+      - name: Pull, start and verify production
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/dossier_oci" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$OCI_USER@$OCI_HOST" \
+            'cd /opt/dossier && docker compose --env-file production.env -f compose.production.yml pull && docker compose --env-file production.env -f compose.production.yml up -d --remove-orphans && docker compose --env-file production.env -f compose.production.yml ps'
+          echo "Checking https://$DOSSIER_DOMAIN/api/health"
+          for attempt in $(seq 1 36); do
+            body="$(curl --silent --show-error --fail "https://$DOSSIER_DOMAIN/api/health" 2>/dev/null || true)"
+            if printf '%s' "$body" | grep -q '"status":"ok"'; then
+              printf '%s\n' "$body"
+              echo "Production health check passed."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::HTTPS health check failed. Check DNS A record, OCI ingress rules (80/443), Caddy logs and app/database logs."
+          exit 1

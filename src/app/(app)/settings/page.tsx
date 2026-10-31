@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { isAiConfigured, loadAiConfig, loadAiSettingsView } from "@/lib/ai/config";
 import { jobSearchView, loadJobSearchConfig } from "@/lib/job-search/config";
 import { COUNTRIES } from "@/lib/job-search/countries";
-import { loadSearch } from "@/lib/posting-searches";
+import { DEFAULT_AGENT_QUERY } from "@/lib/job-search/search";
 import { providerOption } from "@/lib/ai/provider-options";
 import { lastNightlyBackup } from "@/lib/backup-schedule";
 import { backupsDir } from "@/lib/backups";
@@ -14,11 +14,11 @@ import { formatShortDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { googleConnection } from "@/lib/google/account";
 import { loadGoogleClientConfig, redirectUri } from "@/lib/google/oauth";
-import { lastKnownTimeZone, userTimeZone } from "@/lib/time-zone";
+import { userTimeZone } from "@/lib/time-zone";
 import { appVersion } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
 import { loadProfileName } from "@/lib/profile-data";
-import { loadSettings } from "@/lib/settings-data";
+import { loadSettings, saveSettings } from "@/lib/settings-data";
 import { availableUpdate } from "@/lib/update-check";
 import { USAGE_PING_HOST, usagePingChoice } from "@/lib/usage-ping";
 
@@ -42,6 +42,12 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const params = await searchParams;
   const section = settingsSectionFromParam(params.section);
   const settings = await loadSettings();
+  // One-time upgrade: automatic document drafting is enabled by default for this workflow.
+  // Preserve any search the user has already configured; the setting remains
+  // user-controllable after this migration has been recorded.
+  if (!settings.agentAutoDraftConfigured) {
+    await saveSettings({ agentAutoDraft: true, agentAutoDraftConfigured: true });
+  }
 
   return (
     <SettingsScreen section={section}>
@@ -56,18 +62,16 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
         <AgentSection
           initial={{
             enabled: settings.agentEnabled,
-            // With no search of its own yet, it starts from the last one in Find jobs.
-            query: settings.agentQuery.keywords.trim() ? settings.agentQuery : ((await loadSearch())?.query ?? settings.agentQuery),
-            hour: settings.agentHour,
-            minScore: settings.agentMinScore,
+            // Empty legacy settings receive the India-wide leadership and FinTech search.
+            query: settings.agentQuery.keywords.trim() ? settings.agentQuery : DEFAULT_AGENT_QUERY,
+            minScore: Math.max(95, settings.agentMinScore),
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
-            autoDraft: settings.agentAutoDraft,
+            autoDraft: settings.agentAutoDraftConfigured ? settings.agentAutoDraft : true,
           }}
           source={(await loadJobSearchConfig()).source}
           aiReady={await isAiConfigured()}
           countries={COUNTRIES}
-          timeZone={await lastKnownTimeZone()}
         />
       ) : section === "google" ? (
         <>

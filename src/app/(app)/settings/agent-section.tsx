@@ -19,23 +19,20 @@ import { SettingsSectionIntro } from "./settings-screen";
 export type AgentSettings = {
   enabled: boolean;
   query: SearchQuery;
-  hour: number;
   minScore: number;
   maxScores: number;
   maxDrafts: number;
   autoDraft: boolean;
 };
 
-const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-const MIN_SCORES = [50, 55, 60, 65, 70, 75, 80, 85, 90];
+const MIN_SCORES = [95, 96, 97, 98, 99, 100];
 const SCORE_COUNTS = Array.from({ length: 30 }, (_, index) => index + 1);
 const DRAFT_COUNTS = Array.from({ length: 11 }, (_, index) => index);
-const clock = (hour: number) => `${String(hour).padStart(2, "0")}:00`;
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /**
- * Settings → Job agent (E16-7): whether it runs, the one search it runs,
- * when, and how much a run may do. Each change saves at once; the search
+ * Settings → Job agent (E16-7): whether it runs, the search it runs,
+ * and how much a run may do. Each change saves at once; the search
  * once typing pauses.
  */
 export function AgentSection({
@@ -43,15 +40,12 @@ export function AgentSection({
   source,
   aiReady,
   countries,
-  timeZone,
 }: {
   initial: AgentSettings;
   /** The source in Settings → Job search; null while job search is off. */
   source: JobSource | null;
   aiReady: boolean;
   countries: readonly Country[];
-  /** The user's time zone, which the hour is in. */
-  timeZone: string;
 }) {
   const track = useTrackSave();
   const [settings, setSettings] = useState(initial);
@@ -79,7 +73,7 @@ export function AgentSection({
       setErrors(problems);
       if (problems.keywords || problems.country) return;
       // With it, so a search started from Find jobs is saved too.
-      return change({ enabled: true, query: settings.query });
+      return change({ enabled: true, query: settings.query, minScore: Math.max(95, settings.minScore), autoDraft: true });
     }
     change({ enabled: false });
   };
@@ -87,7 +81,7 @@ export function AgentSection({
   return (
     <>
       <SettingsSectionIntro title="Job agent">
-        Once a day it runs one search, scores the new postings against your profile, and keeps the best on the Agent screen. It never sends or applies.
+        Every four hours it searches across India, keeps only source-backed target-role listings, and scores them against your profile. Only 95/100+ matches enter the review queue. It never submits applications.
       </SettingsSectionIntro>
 
       {source === "ARBEITSAGENTUR" ? (
@@ -112,11 +106,7 @@ export function AgentSection({
       <Card padding="none" className="px-7 py-4">
         <Toggle
           label="Run the job agent"
-          description={
-            settings.enabled
-              ? `On. It runs once a day after ${clock(settings.hour)} your time (${timeZone}), and you can run it now and then on the Agent screen.`
-              : "Off. Nothing is searched or scored until it's on."
-          }
+          description={settings.enabled ? "On. One source search every four hours, with automatic resume and cover-letter drafts for 95+ matches." : "Off. Nothing is searched or scored until it is on."}
           checked={settings.enabled}
           onCheckedChange={turnOn}
         />
@@ -133,6 +123,9 @@ export function AgentSection({
             , through the source in Settings → Job search. Postings you saved, dismissed or applied for there are left out.
           </p>
         </div>
+        <p className="text-meta text-muted">Each scan makes one India-wide source query to protect the request budget. Provider ranking determines which remote and city-based listings appear; coverage is not exhaustive city-by-city.</p>
+        <p className="text-meta text-muted">The four-hour schedule uses at most 180 source requests in any rolling 30 days, leaving a 20-request reserve against a 200/month plan. Manual scans count against the same budget.</p>
+        <p className="text-meta text-muted">This cap applies to the agent. Searches you run separately in Find jobs may use the same provider quota, so the 20-request reserve is not guaranteed if you search manually.</p>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
           <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
           <div className="sm:col-span-2">
@@ -142,13 +135,6 @@ export function AgentSection({
       </Card>
 
       <Card padding="none" className="grid gap-x-[18px] gap-y-5 px-7 py-[26px] sm:grid-cols-2">
-        <Select label="Runs after" hint={`Your time (${timeZone})`} value={String(settings.hour)} onChange={(event) => change({ hour: Number(event.target.value) })}>
-          {HOURS.map((hour) => (
-            <option key={hour} value={hour}>
-              {clock(hour)}
-            </option>
-          ))}
-        </Select>
         <Select
           label="Minimum score"
           hint="Postings scored lower stay out of the queue."
@@ -195,7 +181,7 @@ export function AgentSection({
       </Card>
 
       <p className="text-meta text-muted">
-        One search a day, and at most three in any 24 hours. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
+        One India-wide source search runs every four hours, with a hard cap of 180 searches in any rolling 30 days. Each run scores up to {plural(settings.maxScores, "posting", "postings")}
         {settings.autoDraft ? ` and prepares up to ${plural(settings.maxDrafts, "draft", "drafts")}` : ""}. Scoring and drafts go to your AI provider with your profile, as a new application does; the job source only gets the search.
       </p>
     </>

@@ -39,7 +39,7 @@ const card = (id: string, score: number, extra: Partial<AgentCandidateView> = {}
 const view: AgentView = {
   enabled: true,
   autoDraft: false,
-  minScore: 70,
+  minScore: 95,
   maxScores: 15,
   maxDrafts: 3,
   search: "Product designer · Rotterdam, 25 km · via JSearch",
@@ -49,8 +49,8 @@ const view: AgentView = {
   lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },
   nextRun: "Wed 21 Oct, 07:00",
   runJobId: null,
-  drafts: [card("d1", 91, { applicationId: "app-1" })],
-  scored: [card("s1", 84, { redFlags: ["German required"], error: "The draft couldn't be prepared. Try again." }), card("s2", 72)],
+  drafts: [card("d1", 99, { applicationId: "app-1" })],
+  scored: [card("s1", 98, { redFlags: ["German required"], error: "Draft generation failed." }), card("s2", 96)],
   belowMinimum: [card("b1", 40)],
 };
 const open = (changes: Partial<AgentView> = {}) => render(<AgentScreen view={{ ...view, ...changes }} />);
@@ -71,7 +71,7 @@ describe("AgentScreen (E16-6)", () => {
     open();
     const drafts = screen.getByRole("region", { name: "Drafts to review" });
     expect(within(drafts).getByRole("heading", { level: 3, name: "Posting d1" })).toBeInTheDocument();
-    expect(within(drafts).getByRole("img", { name: "Score 91 of 100" })).toBeInTheDocument();
+    expect(within(drafts).getByRole("img", { name: "Score 99 of 100" })).toBeInTheDocument();
     expect(within(drafts).getByRole("link", { name: "Review draft" })).toHaveAttribute("href", "/applications/app-1");
     await user.click(within(drafts).getByRole("button", { name: "Approve" }));
     expect(approveAgentDraft).toHaveBeenCalledWith({ candidateId: "d1" });
@@ -95,7 +95,7 @@ describe("AgentScreen (E16-6)", () => {
     expect(within(scored).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Posting s1", "Posting s2"]);
     expect(within(scored).getAllByRole("list", { name: "Why it fits" })[0]).toHaveTextContent("Reason for s1");
     expect(within(scored).getByText("German required")).toBeInTheDocument();
-    expect(within(scored).getByRole("alert")).toHaveTextContent("The draft couldn't be prepared. Try again.");
+    expect(within(scored).getByRole("alert")).toHaveTextContent("Draft generation failed.");
     const [link] = within(scored).getAllByRole("link", { name: /Open posting/ });
     expect(link).toHaveAttribute("href", "https://jobs.example/s1");
     expect(link).toHaveAttribute("target", "_blank");
@@ -103,19 +103,15 @@ describe("AgentScreen (E16-6)", () => {
   });
 
   it("labels Adzuna's postings with a link to Adzuna, as its terms ask", () => {
-    open({ scored: [card("s1", 84, { source: "ADZUNA", url: "https://www.adzuna.nl/land/ad/1" }), card("s2", 72)] });
+    open({ scored: [card("s1", 98, { source: "ADZUNA", url: "https://www.adzuna.nl/land/ad/1" }), card("s2", 96)] });
     const scored = screen.getByRole("region", { name: "Scored postings" });
     expect(within(scored).getByRole("link", { name: "Jobs by Adzuna (opens in a new tab)" })).toHaveAttribute("href", "https://www.adzuna.nl");
   });
 
-  it("keeps postings below the minimum score behind Show", async () => {
-    const user = userEvent.setup();
+  it("never surfaces postings below the minimum score", async () => {
     open();
     expect(screen.queryByText("Posting b1")).not.toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: "1 below your minimum score of 70 · Show" });
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Posting b1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /below your minimum score/ })).not.toBeInTheDocument();
   });
 
   it("prepares a draft from a scored posting", async () => {
@@ -166,7 +162,7 @@ describe("AgentScreen (E16-6)", () => {
     second.unmount();
 
     open({ limitReached: true });
-    expect(screen.getByRole("note")).toHaveTextContent("The agent has run 3 times in the past 24 hours");
+    expect(screen.getByRole("note")).toHaveTextContent("The agent has used its 180-search rolling 30-day budget");
   });
 
   it("says when there's nothing yet", () => {

@@ -1,0 +1,24 @@
+#cloud-config
+# Use this as the Custom cloud-init script when creating an Ubuntu 24.04
+# AArch64 (ARM64) VM.Standard.A1.Flex instance in your OCI home region.
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - docker-compose-v2
+  - ufw
+
+runcmd:
+  # OCI Ubuntu images use the "ubuntu" login user.
+  - [usermod, -aG, docker, ubuntu]
+  - [systemctl, enable, --now, docker]
+  # Keep SSH accessible while enabling the host firewall.
+  - [ufw, allow, OpenSSH]
+  - [ufw, allow, 80/tcp]
+  - [ufw, allow, 443/tcp]
+  - [ufw, allow, 443/udp]
+  - [ufw, --force, enable]
+  - [install, -d, -m, "0750", -o, ubuntu, -g, ubuntu, /opt/dossier]

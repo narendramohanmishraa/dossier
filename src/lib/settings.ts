@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { AiProvider, Creativity, DateFormat, PaperSize, Tone } from "@/generated/prisma/enums";
-import { EMPTY_QUERY, JOB_SOURCES, JSEARCH_HOSTS, searchQuerySchema } from "@/lib/job-search/search";
+import { DEFAULT_AGENT_QUERY, JOB_SOURCES, JSEARCH_HOSTS, searchQuerySchema } from "@/lib/job-search/search";
 import { startupsRefreshSchema } from "@/lib/startups/types";
 
 /** Date styles for documents (SET-6), labelled with an example as in the prototype. */
@@ -97,7 +97,7 @@ export const agentRunSchema = z.object({
 });
 export type AgentRun = z.infer<typeof agentRunSchema>;
 /** How many runs are kept: more than a day's worth, for the limit and the screen. */
-export const AGENT_RUNS_KEPT = 10;
+export const AGENT_RUNS_KEPT = 190;
 
 export const settingsSchema = z.object({
   // AI provider (SET-1). Null means "not set in the app": fall back to the
@@ -155,20 +155,22 @@ export const settingsSchema = z.object({
   adzunaKeyEnc: z.string().nullable().catch(null),
   /** When "I understand" was ticked under the Bundesagentur für Arbeit's note (#223); its searches wait for it. */
   arbeitsagenturAcceptedAt: z.iso.datetime().nullable().catch(null),
-  // Job agent (E16): one search, run once a day. Off until it's turned on.
+  // Job agent (E16): one source search every four hours, capped at 180 per rolling 30 days. Off until enabled.
   // It asks the source in Settings → Job search, with its key.
   agentEnabled: flag(false),
   /** The search it runs, as Find jobs asks it; it needs keywords and a country to run. */
-  agentQuery: json(searchQuerySchema).catch(EMPTY_QUERY),
-  /** The hour of the day it runs, in the user's time zone. */
+  agentQuery: json(searchQuerySchema).catch(DEFAULT_AGENT_QUERY),
+  /** Legacy daily-schedule preference retained for existing installations. */
   agentHour: z.coerce.number().int().min(0).max(23).catch(7),
   /** Postings scored below this stay out of the queue. */
-  agentMinScore: z.coerce.number().int().min(0).max(100).catch(70),
+  agentMinScore: z.coerce.number().int().min(95).max(100).catch(95),
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
-  /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
-  agentAutoDraft: flag(false),
+  /** Whether a run prepares drafts for its best postings; enabled by default for the requested workflow. */
+  agentAutoDraft: flag(true),
+  /** One-time migration that enables auto-drafting for existing installations; users can then change it. */
+  agentAutoDraftConfigured: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */
   agentRuns: json(z.array(agentRunSchema)).catch([]),
   // Startups (#222): when the screen was last opened, since the daily refresh

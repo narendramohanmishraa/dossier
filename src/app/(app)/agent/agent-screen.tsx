@@ -34,7 +34,6 @@ export function AgentScreen({ view }: { view: AgentView }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [runJobId, setRunJobId] = useState(view.runJobId);
-  const [showBelow, setShowBelow] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<AgentCandidateView | null>(null);
 
@@ -86,14 +85,13 @@ export function AgentScreen({ view }: { view: AgentView }) {
 
   const drafts = view.drafts.filter((candidate) => !hidden.has(candidate.id));
   const scored = view.scored.filter((candidate) => !hidden.has(candidate.id));
-  const below = view.belowMinimum.filter((candidate) => !hidden.has(candidate.id));
   const empty = drafts.length === 0 && scored.length === 0;
 
   return (
     <>
       <PageHeader
         title="Job agent"
-        description="Once a day it searches for new postings, scores them against your profile, and keeps the best here for you. Drafts wait for your review, and nothing is ever sent."
+        description="Every four hours it searches India-wide, filters for target roles and source-backed listings, and queues only 95+ profile matches. Tailored drafts wait for your review; nothing is submitted."
         actions={
           <Button aria-disabled={running || pending || undefined} onClick={() => !running && !pending && runNow()}>
             {running ? "Running…" : "Run now"}
@@ -174,22 +172,7 @@ export function AgentScreen({ view }: { view: AgentView }) {
               ))}
             </ul>
           )}
-          {below.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <button type="button" aria-expanded={showBelow} onClick={() => setShowBelow(!showBelow)} className="w-fit text-meta text-muted underline underline-offset-2 hover:text-ink">
-                {below.length} below your minimum score of {view.minScore} · {showBelow ? "Hide" : "Show"}
-              </button>
-              {showBelow && (
-                <ul className="flex flex-col gap-3">
-                  {below.map((candidate) => (
-                    <li key={candidate.id}>
-                      <ScoredCard candidate={candidate} onDismiss={() => dismiss(candidate)} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+
         </Section>
       </div>
 
@@ -238,7 +221,7 @@ function Notices({ view }: { view: AgentView }) {
       </>,
     );
   }
-  if (view.limitReached) return note("The agent has run 3 times in the past 24 hours, as many as it may. It runs again once a day has passed since the first.");
+  if (view.limitReached) return note("The agent has used its 180-search rolling 30-day budget. It will resume when the oldest search leaves the window.");
   return null;
 }
 

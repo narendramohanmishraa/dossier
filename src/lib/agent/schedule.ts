@@ -1,55 +1,52 @@
 import "server-only";
 
 import { AgentCandidateStatus } from "@/generated/prisma/enums";
-import { addDays, dayOf } from "@/lib/calendar-view";
-import { zonedTime } from "@/lib/google/slots";
 import { findUnfinishedJobs, startJob } from "@/lib/jobs/runner";
 import { logServerError } from "@/lib/log";
 import { prisma } from "@/lib/prisma";
-import type { AgentRun } from "@/lib/settings";
 import { loadSettings } from "@/lib/settings-data";
-import { lastKnownTimeZone } from "@/lib/time-zone";
+import type { AgentRun } from "@/lib/settings";
 
 import { AGENT_JOB_KEY, agentScanJob } from "./jobs";
+import { agentSetupProblem } from "./run";
+import { AGENT_MAX_RUNS_PER_MONTH, AGENT_SCAN_INTERVAL_MS, runLimitProblem, runsInPastMonth } from "./runs";
 
-// The job agent's daily run (E16-4): a timer in this process, like the
-// nightly backups and the inbox check, so it's only right with one instance.
-// Every 15 minutes it starts the day's run once the chosen hour has come, in
-// the user's time zone, not the server's (usually UTC in Docker).
+// The agent checks every minute and starts a scan once every four hours after the
+// previous run. This timer lives in the app process, so Dossier must run as a
+// single instance per database (the same constraint as its other schedulers).
 
-const EVERY_MS = 15 * 60 * 1000;
+const CHECK_MS = 60 * 1000;
 
-/** The moment the run is due on `day`, at `hour` in `timeZone`. */
-const dueOn = (day: string, hour: number, timeZone: string) => {
-  const [year, month, date] = day.split("-").map(Number);
-  return zonedTime(year, month, date, hour, 0, timeZone);
-};
-
-/** Whether a run, of either kind, happened on `now`'s day in `timeZone`. */
-const ranToday = (runs: readonly AgentRun[], now: Date, timeZone: string) =>
-  runs.some((run) => dayOf(new Date(run.at), timeZone) === dayOf(now, timeZone));
-
-/** Whether the day's run should start now: the hour has come, and nothing ran today. */
-export function scheduledRunDue(now: Date, hour: number, timeZone: string, runs: readonly AgentRun[]): boolean {
-  return now >= dueOn(dayOf(now, timeZone), hour, timeZone) && !ranToday(runs, now, timeZone);
+/**
+ * Whether a four-hour scan is due. The legacy hour/time-zone parameters remain
+ * accepted so existing callers and old settings do not break.
+ */
+export function scheduledRunDue(now: Date, _hour: number, _timeZone: string, runs: readonly AgentRun[]): boolean {
+  const last = runs[0];
+  return !last || now.getTime() - Date.parse(last.at) >= AGENT_SCAN_INTERVAL_MS;
 }
 
-/** When the next scheduled run starts: today's, if it's still to come, else tomorrow's. */
-export function nextAgentRun(now: Date, hour: number, timeZone: string, runs: readonly AgentRun[]): Date {
-  const today = dayOf(now, timeZone);
-  if (!ranToday(runs, now, timeZone)) {
-    const due = dueOn(today, hour, timeZone);
-    // Overdue: the next check starts it.
-    return due > now ? due : new Date(Math.ceil(now.getTime() / EVERY_MS) * EVERY_MS);
+/** The next run, or the first time a slot leaves the rolling 30-day budget. */
+export function nextAgentRun(now: Date, _hour: number, _timeZone: string, runs: readonly AgentRun[]): Date {
+  const recent = runsInPastMonth(runs, now);
+  const last = runs[0];
+  const intervalReadyAt = last ? Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS : now.getTime();
+  if (recent.length >= AGENT_MAX_RUNS_PER_MONTH) {
+    const oldest = Math.min(...recent.map((run) => Date.parse(run.at)));
+    const budgetReadyAt = oldest + 30 * 24 * 60 * 60 * 1000;
+    return new Date(Math.max(budgetReadyAt, intervalReadyAt));
   }
-  return dueOn(addDays(today, 1), hour, timeZone);
+  const due = intervalReadyAt;
+  return new Date(due > now.getTime() ? due : Math.ceil(now.getTime() / CHECK_MS) * CHECK_MS);
 }
 
-/** Starts the day's run when it's due and none is queued or running. */
+/** Starts the next four-hour scan when the agent is on and no scan is in flight. */
 export async function startDueRun(now = new Date()): Promise<string | null> {
   const settings = await loadSettings();
   if (!settings.agentEnabled) return null;
-  if (!scheduledRunDue(now, settings.agentHour, await lastKnownTimeZone(), settings.agentRuns)) return null;
+  if (await agentSetupProblem(settings.agentQuery)) return null;
+  if (runLimitProblem(settings.agentRuns, now, { manual: false })) return null;
+  if (!scheduledRunDue(now, settings.agentHour, "UTC", settings.agentRuns)) return null;
   if ((await findUnfinishedJobs(AGENT_JOB_KEY)).length > 0) return null;
   return startJob(agentScanJob, { manual: false }, { key: AGENT_JOB_KEY });
 }
@@ -70,8 +67,8 @@ export function startAgentSchedule(): void {
   if (globalForAgent.agentTimer) return;
   void resetInterruptedDrafts().catch((error: unknown) => logServerError("job agent", error));
   const check = () => void startDueRun().catch((error: unknown) => logServerError("job agent schedule", error));
-  globalForAgent.agentTimer = setInterval(check, EVERY_MS);
-  // Don't keep the process alive just for this.
+  globalForAgent.agentTimer = setInterval(check, CHECK_MS);
+  // Do not keep the process alive just for this.
   globalForAgent.agentTimer.unref?.();
   check();
 }

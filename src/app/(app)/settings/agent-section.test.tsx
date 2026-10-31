@@ -13,18 +13,17 @@ vi.mock("@/components/toast", () => ({ toast: vi.fn(), toastResult: (result: { o
 const initial: AgentSettings = {
   enabled: false,
   query: { keywords: "Data scientist", place: "Berlin", country: "de", radiusKm: 25, remoteOnly: false, postedWithin: "any" },
-  hour: 7,
-  minScore: 70,
+  minScore: 95,
   maxScores: 15,
   maxDrafts: 3,
-  autoDraft: false,
+  autoDraft: true,
 };
 const countries = [
   { code: "de", name: "Germany" },
   { code: "nl", name: "Netherlands" },
 ];
 const open = (props: Partial<Parameters<typeof AgentSection>[0]> = {}) =>
-  render(<AgentSection initial={initial} source="JSEARCH" aiReady countries={countries} timeZone="Europe/Berlin" {...props} />);
+  render(<AgentSection initial={initial} source="JSEARCH" aiReady countries={countries} {...props} />);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -34,10 +33,10 @@ describe("Settings → Job agent (E16-7)", () => {
     open();
     const toggle = screen.getByRole("switch", { name: "Run the job agent" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it's on.");
+    expect(toggle).toHaveAccessibleDescription("Off. Nothing is searched or scored until it is on.");
     await user.click(toggle);
-    expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query });
-    expect(toggle).toHaveAccessibleDescription(/^On\. It runs once a day after 07:00 your time \(Europe\/Berlin\)/);
+    expect(saveAgentSettings).toHaveBeenCalledWith({ enabled: true, query: initial.query, minScore: 95, autoDraft: true });
+    expect(toggle).toHaveAccessibleDescription("On. One source search every four hours, with automatic resume and cover-letter drafts for 95+ matches.");
   });
 
   it("needs keywords and a country to turn on", async () => {
@@ -55,30 +54,31 @@ describe("Settings → Job agent (E16-7)", () => {
     open();
     await user.type(screen.getByLabelText("What"), " NLP");
     await waitFor(() => expect(saveAgentSettings).toHaveBeenLastCalledWith({ query: { ...initial.query, keywords: "Data scientist NLP" } }), { timeout: 2000 });
-    await user.selectOptions(screen.getByLabelText("Runs after"), "09:00");
-    expect(saveAgentSettings).toHaveBeenLastCalledWith({ hour: 9 });
-    await user.selectOptions(screen.getByLabelText("Minimum score"), "80 of 100");
-    expect(saveAgentSettings).toHaveBeenLastCalledWith({ minScore: 80 });
+    await user.selectOptions(screen.getByLabelText("Minimum score"), "96 of 100");
+    expect(saveAgentSettings).toHaveBeenLastCalledWith({ minScore: 96 });
     await user.selectOptions(screen.getByLabelText("Postings scored per run"), "20");
     expect(saveAgentSettings).toHaveBeenLastCalledWith({ maxScores: 20 });
   });
 
-  it("prepares no drafts on its own unless asked, and then up to the cap", async () => {
+  it("prepares drafts by default and lets the user turn automatic drafting off", async () => {
     const user = userEvent.setup();
     open();
-    expect(screen.getByLabelText("Drafts per run, at most")).toBeDisabled();
+    const drafts = screen.getByLabelText("Drafts per run, at most");
+    expect(drafts).toBeEnabled();
     const toggle = screen.getByRole("switch", { name: "Prepare drafts on its own" });
-    expect(toggle).toHaveAccessibleDescription("Off. You choose which postings get a draft with Prepare draft.");
-    await user.click(toggle);
-    expect(saveAgentSettings).toHaveBeenLastCalledWith({ autoDraft: true });
-    await user.selectOptions(screen.getByLabelText("Drafts per run, at most"), "5");
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    await user.selectOptions(drafts, "5");
     expect(saveAgentSettings).toHaveBeenLastCalledWith({ maxDrafts: 5 });
-    expect(toggle).toHaveAccessibleDescription(/up to 5 drafts/);
+    await user.click(toggle);
+    expect(saveAgentSettings).toHaveBeenLastCalledWith({ autoDraft: false });
+    expect(toggle).toHaveAccessibleDescription("Off. You choose which postings get a draft with Prepare draft.");
   });
 
   it("explains the limits in plain words", () => {
     open();
-    expect(screen.getByText(/^One search a day, and at most three in any 24 hours\. Each run scores up to 15 postings\./)).toBeInTheDocument();
+    expect(screen.getByText(/Each scan makes one India-wide source query to protect the request budget/)).toBeInTheDocument();
+    expect(screen.getByText(/The four-hour schedule uses at most 180 source requests in any rolling 30 days, leaving a 20-request reserve against a 200\/month plan\. Manual scans count against the same budget\./)).toBeInTheDocument();
+    expect(screen.getByText(/This cap applies to the agent\. Searches you run separately in Find jobs may use the same provider quota/)).toBeInTheDocument();
   });
 
   it("points to the source or AI provider while one isn't set up", () => {

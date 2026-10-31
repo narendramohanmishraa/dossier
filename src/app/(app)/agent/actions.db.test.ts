@@ -32,7 +32,7 @@ vi.mock("@/lib/job-search/config", () => ({
 const prisma = () => db.client!;
 const candidate = (data: { status?: "SCORED" | "DRAFTED" | "DRAFTING"; applicationId?: string } = {}) =>
   prisma().agentCandidate.create({
-    data: { source: "JSEARCH", externalId: `job-${Math.random()}`, dedupeKey: `key-${Math.random()}`, title: "Data Scientist", company: "Ledgerly", url: "https://jobs.example/1", score: 88, reasons: ["Python"], ...data },
+    data: { source: "JSEARCH", externalId: `job-${Math.random()}`, dedupeKey: `key-${Math.random()}`, title: "Data Scientist", company: "Ledgerly", url: "https://jobs.example/1", score: 98, reasons: ["Python"], ...data },
   });
 const query: SearchQuery = { keywords: "Data scientist", place: "", country: "de", radiusKm: 25, remoteOnly: false, postedWithin: "any" };
 
@@ -68,12 +68,13 @@ describe("Run now (E16-4)", () => {
     expect(await runAgentNow({})).toMatchObject({ ok: false, error: "Choose a job source in Settings → Job search first." });
   });
 
-  it("waits an hour after the previous run, and keeps to 3 a day", async () => {
+  it("waits four hours after the previous run, and enforces the rolling 30-day limit", async () => {
     const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
     await saveSettings({ agentRuns: [{ at: at(20), manual: false, message: null }] });
-    expect(await runAgentNow({})).toEqual({ ok: false, error: "The agent ran less than an hour ago. Try again in 40 minutes." });
-    await saveSettings({ agentRuns: [at(70), at(200), at(400)].map((time) => ({ at: time, manual: true, message: null })) });
-    expect(await runAgentNow({})).toMatchObject({ ok: false, error: expect.stringMatching(/^The agent has run 3 times in the past 24 hours/) });
+    expect(await runAgentNow({})).toEqual({ ok: false, error: "The agent runs once every four hours. Try again in 4 hours." });
+    const monthlyRuns = Array.from({ length: 180 }, (_, index) => ({ at: at(index * 240), manual: index > 0, message: null }));
+    await saveSettings({ agentRuns: monthlyRuns });
+    expect(await runAgentNow({})).toMatchObject({ ok: false, error: expect.stringMatching(/^The agent reached its 180-search rolling 30-day budget/) });
   });
 });
 
@@ -130,8 +131,8 @@ describe("saving the agent's settings (E16-7)", () => {
     expect(await saveAgentSettings({ enabled: true })).toEqual({ ok: false, error: "Type what the agent should look for before turning it on." });
     expect(await saveAgentSettings({ enabled: true, query: { ...query, country: "" } })).toEqual({ ok: false, error: "Choose a country for the search before turning the agent on." });
     expect(await saveAgentSettings({ enabled: true, query })).toEqual({ ok: true, data: null });
-    expect(await saveAgentSettings({ hour: 9, minScore: 80, autoDraft: true, maxDrafts: 5 })).toEqual({ ok: true, data: null });
-    expect(await loadSettings()).toMatchObject({ agentEnabled: true, agentQuery: query, agentHour: 9, agentMinScore: 80, agentAutoDraft: true, agentMaxDrafts: 5, agentMaxScores: 15 });
+    expect(await saveAgentSettings({ hour: 9, minScore: 95, autoDraft: true, maxDrafts: 5 })).toEqual({ ok: true, data: null });
+    expect(await loadSettings()).toMatchObject({ agentEnabled: true, agentQuery: query, agentHour: 9, agentMinScore: 95, agentAutoDraft: true, agentAutoDraftConfigured: true, agentMaxDrafts: 5, agentMaxScores: 15 });
     expect(await saveAgentSettings({ maxScores: 31 })).toMatchObject({ ok: false });
   });
 });

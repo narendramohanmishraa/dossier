@@ -7,27 +7,30 @@ import { loadSettings, saveSettings } from "@/lib/settings-data";
 // which the task-data sweep deletes after "Keep task data for": the limits
 // below must hold whatever that is set to.
 
-/** At most this many runs in any 24 hours, scheduled or Run now. */
-export const AGENT_MAX_RUNS_PER_DAY = 3;
-/** Run now waits this long after the previous run of either kind. */
-export const AGENT_MANUAL_INTERVAL_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** 200/month provider budget, with a 20-request safety margin. */
+export const AGENT_MAX_RUNS_PER_MONTH = 180;
+/** One source request every four hours (six per day, 180 per 30-day month). */
+export const AGENT_SCAN_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** The runs in the 24 hours before `now`, newest first. */
-export const runsInPastDay = (runs: readonly AgentRun[], now: Date) =>
-  runs.filter((run) => now.getTime() - Date.parse(run.at) < DAY_MS);
+/** The runs in the rolling 30-day window before `now`, newest first. */
+export const runsInPastMonth = (runs: readonly AgentRun[], now: Date) =>
+  runs.filter((run) => now.getTime() - Date.parse(run.at) < MONTH_MS);
 
 /** Why no run may start now, in words, or null when one may. */
-export function runLimitProblem(runs: readonly AgentRun[], now: Date, { manual }: { manual: boolean }): string | null {
-  const recent = runsInPastDay(runs, now);
-  if (recent.length >= AGENT_MAX_RUNS_PER_DAY) {
-    const free = new Date(Math.min(...recent.map((run) => Date.parse(run.at))) + DAY_MS);
-    return `The agent has run ${AGENT_MAX_RUNS_PER_DAY} times in the past 24 hours, as many as it may. ${waitText(free.getTime() - now.getTime())}`;
-  }
+export function runLimitProblem(runs: readonly AgentRun[], now: Date, _options: { manual: boolean }): string | null {
+  const recent = runsInPastMonth(runs, now);
   const last = runs[0];
-  if (manual && last) {
-    const wait = Date.parse(last.at) + AGENT_MANUAL_INTERVAL_MS - now.getTime();
-    if (wait > 0) return `The agent ran less than an hour ago. ${waitText(wait)}`;
+  const intervalReadyAt = last ? Date.parse(last.at) + AGENT_SCAN_INTERVAL_MS : now.getTime();
+  if (recent.length >= AGENT_MAX_RUNS_PER_MONTH) {
+    const oldest = Math.min(...recent.map((run) => Date.parse(run.at)));
+    const budgetReadyAt = oldest + MONTH_MS;
+    const availableAt = Math.max(budgetReadyAt, intervalReadyAt);
+    return `The agent reached its ${AGENT_MAX_RUNS_PER_MONTH}-search rolling 30-day budget. ${waitText(availableAt - now.getTime())}`;
+  }
+  if (last) {
+    const wait = intervalReadyAt - now.getTime();
+    if (wait > 0) return `The agent runs once every four hours. Try again in ${waitText(wait).replace(/^Try again in /, "")}`;
   }
   return null;
 }

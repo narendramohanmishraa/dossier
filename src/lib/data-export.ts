@@ -58,6 +58,7 @@ export const INSTALL_SETTINGS: readonly string[] = [
   "usagePingChoiceText",
   // The job agent's runs count against this server's job source key (E16).
   "agentRuns",
+  "agentAutoDraftConfigured",
   // When Startups was last opened and what its last refresh found (#222).
   "startupsViewedAt",
   "startupsLastRefresh",

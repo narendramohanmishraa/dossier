@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dossier Autofill</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <h1>Dossier Autofill</h1>
+      <p class="hint">Import your reduced Dossier profile once. It stays in this browser's local extension storage.</p>
+      <label class="file-label" for="profile-file">Import Dossier profile JSON</label>
+      <input id="profile-file" type="file" accept=".json,application/json">
+      <p id="profile-state" class="state" role="status">No profile loaded.</p>
+
+      <button id="fill" disabled>Review fields on this page</button>
+
+      <section id="review" class="review" hidden aria-labelledby="review-title">
+        <div class="review-heading">
+          <h2 id="review-title">Review before filling</h2>
+          <span id="portal" class="portal"></span>
+        </div>
+        <p class="hint">Uncheck any field you do not want to fill. Only selected empty fields will be changed.</p>
+        <div id="fields" class="fields"></div>
+        <button id="apply" disabled>Fill selected fields</button>
+      </section>
+
+      <button id="clear" class="secondary" disabled>Clear stored profile</button>
+      <p id="result" class="result" role="status" aria-live="polite"></p>
+      <p class="footnote">Nothing is submitted. Legal, demographic, eligibility, salary and file-upload fields are not automated.</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
