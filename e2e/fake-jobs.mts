@@ -24,7 +24,7 @@ const job = (id: string, title: string, company: string, extra: Record<string, u
   ...extra,
 });
 
-const firstPage = [
+const indiaFirstPage = [
   job("e2e-head-it", "Head of IT", "Ledgerly Finance", {
     job_min_salary: 4200000,
     job_max_salary: 5200000,
@@ -41,7 +41,30 @@ const firstPage = [
     job_location: "Noida, Uttar Pradesh, India  •  via LinkedIn",
   }),
 ];
-const secondPage = [job("e2e-digital", "Digital Transformation Head", "Canal Capital")];
+const indiaSecondPage = [job("e2e-digital", "Digital Transformation Head", "Canal Capital")];
+
+// Keep the existing Find jobs tests' Rotterdam profile fixtures, while giving
+// the India-focused agent query realistic India leadership postings.
+const profileJob = (id: string, title: string, company: string, extra: Record<string, unknown> = {}) => ({
+  job_id: id,
+  job_title: title,
+  employer_name: company,
+  job_publisher: "LinkedIn",
+  job_apply_link: `https://jobs.example/${id}`,
+  apply_options: [{ publisher: "LinkedIn", apply_link: `https://jobs.example/${id}`, is_direct: false }],
+  job_description: `${company} is hiring a ${title}.\\n\\nWhat you'll do\\n- Design checkout flows\\n- Work with research\\n\\nWhat we're looking for\\n- 5+ years of product design\\n- Strong prototyping skills in Figma`,
+  job_is_remote: false,
+  job_posted_at_datetime_utc: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+  job_location: "Rotterdam  •  via LinkedIn",
+  job_country: "NL",
+  ...extra,
+});
+const profileFirstPage = [
+  profileJob("e2e-ledgerly", "Senior Product Designer, Payments", "Ledgerly", { job_min_salary: 75000, job_max_salary: 90000, job_salary_currency: "EUR", job_salary_period: "YEAR" }),
+  profileJob("e2e-harbour", "Product Designer, Logistics", "Harbour Freight", { job_publisher: "Indeed" }),
+  profileJob("e2e-tulip", "UX Designer", "Tulip Health", { job_is_remote: true, job_location: "Anywhere  •  via Indeed" }),
+];
+const profileSecondPage = [profileJob("e2e-canal", "Design Systems Designer", "Canal Software")];
 function send(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { "content-type": "application/json" });
   response.end(JSON.stringify(body));
@@ -123,6 +146,11 @@ createServer((request, response) => {
     searches += 1;
     // "nothing" finds nothing; otherwise two pages, joined by a cursor.
     if (/nothing/i.test(url.searchParams.get("query") ?? "")) return send(response, 200, { status: "OK", data: { jobs: [], cursor: null } });
+    const searchText = [...url.searchParams.values()].join(" ").toLowerCase();
+    const indiaSearch = /head of it|avp|\\bcto\\b|it delivery manager|digital transformation|product manager fintech/.test(searchText) ||
+      [...url.searchParams.entries()].some(([key, value]) => key.toLowerCase().includes("country") && value.toLowerCase() === "in");
+    const firstPage = indiaSearch ? indiaFirstPage : profileFirstPage;
+    const secondPage = indiaSearch ? indiaSecondPage : profileSecondPage;
     const second = url.searchParams.get("cursor") === "PAGE-2";
     return send(response, 200, { status: "OK", request_id: "e2e", data: second ? { jobs: secondPage, cursor: null } : { jobs: firstPage, cursor: "PAGE-2" } });
   }
